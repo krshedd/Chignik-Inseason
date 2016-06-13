@@ -18,6 +18,10 @@ dirs2015 <- list.dirs(path = "2015", recursive = FALSE, full.names = FALSE)
 setwd("2016")
 sapply(dirs2015, dir.create)
 sapply(c("Control", "Mixture", "Output"), function(folder) {dir.create(path = paste(getwd(), "BAYES", folder, sep = "/"))})
+
+# Copy baseline
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
+file.copy(from = "2015/BAYES/ChignikPops24Loci.bse", to = "2016/BAYES/ChignikPops24Loci.bse")
 # dir.create(path = "Contacts and schedule")  # Done
 
 ## save.image("2016/2016ChignikInseason.RData")
