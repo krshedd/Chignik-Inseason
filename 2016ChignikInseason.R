@@ -1,5 +1,5 @@
 ## 2015 Chignik Escapement mixture analysis - Inseason!
-## Kyle Shedd Wed Jun 24 18:22:40 2015
+## Kyle Shedd Mon Jun 13 09:43:05 2016
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Round 1 June 27 2015 ####
@@ -41,7 +41,7 @@ dput(x = LocusControl, file = "Objects/OriginalLocusControl_1_Jun27.txt")
 unique(SCHIG15.gcl$attributes$CAPTURE_DATE)
 SCHIG15_1_Jun27IDs <- AttributesToIDs.GCL(silly = "SCHIG15", attribute = "CAPTURE_DATE", matching = unique(SCHIG15.gcl$attributes$CAPTURE_DATE)[1])
 
-SCHIG15_1_Jun27IDs <- list(as.numeric(na.omit(SCHIG15_1_Jun27IDs)))
+SCHIG15_1_Jun27IDs <- list(na.omit(SCHIG15_1_Jun27IDs))
 names(SCHIG15_1_Jun27IDs) <- "SCHIG15"
 
 PoolCollections.GCL("SCHIG15", loci = loci24, IDs = SCHIG15_1_Jun27IDs, newname = "SCHIG15_1_Jun27")
@@ -85,6 +85,7 @@ SCHIG15_1_Jun27_SampleSizes[, "Duplicate"] <- ColSize_SCHIG15_1_Jun27_PostMissLo
 SCHIG15_1_Jun27_SampleSizes[, "Final"] <- ColSize_SCHIG15_1_Jun27_PostDuplicate
 
 write.xlsx(SCHIG15_1_Jun27_SampleSizes, file = "Output/SCHIG15_1_Jun27_SampleSizes.xlsx")
+dput(x = SCHIG15_1_Jun27.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG15_1_Jun27_IDs.txt")
 
 ## Combine loci
 LocusControl
@@ -226,7 +227,7 @@ dput(x = LocusControl, file = "Objects/OriginalLocusControl_2_Jul01.txt")
 unique(SCHIG15.gcl$attributes$CAPTURE_DATE)
 SCHIG15_2_Jul01IDs <- AttributesToIDs.GCL(silly = "SCHIG15", attribute = "CAPTURE_DATE", matching = unique(SCHIG15.gcl$attributes$CAPTURE_DATE)[2])
 
-SCHIG15_2_Jul01IDs <- list(as.numeric(na.omit(SCHIG15_2_Jul01IDs)))
+SCHIG15_2_Jul01IDs <- list(na.omit(SCHIG15_2_Jul01IDs))
 names(SCHIG15_2_Jul01IDs) <- "SCHIG15"
 
 PoolCollections.GCL("SCHIG15", loci = loci24, IDs = SCHIG15_2_Jul01IDs, newname = "SCHIG15_2_Jul01")
@@ -270,6 +271,7 @@ SCHIG15_2_Jul01_SampleSizes[, "Duplicate"] <- ColSize_SCHIG15_2_Jul01_PostMissLo
 SCHIG15_2_Jul01_SampleSizes[, "Final"] <- ColSize_SCHIG15_2_Jul01_PostDuplicate
 
 write.xlsx(SCHIG15_2_Jul01_SampleSizes, file = "Output/SCHIG15_2_Jul01_SampleSizes.xlsx")
+dput(x = SCHIG15_1_Jun27.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG15_1_Jun27_IDs.txt")
 
 ## Combine loci
 LocusControl
@@ -416,7 +418,7 @@ dput(x = LocusControl, file = "Objects/OriginalLocusControl_3_Jul05.txt")
 unique(SCHIG15.gcl$attributes$CAPTURE_DATE)
 SCHIG15_3_Jul05IDs <- AttributesToIDs.GCL(silly = "SCHIG15", attribute = "CAPTURE_DATE", matching = unique(SCHIG15.gcl$attributes$CAPTURE_DATE)[3])
 
-SCHIG15_3_Jul05IDs <- list(as.numeric(na.omit(SCHIG15_3_Jul05IDs)))
+SCHIG15_3_Jul05IDs <- list(na.omit(SCHIG15_3_Jul05IDs))
 names(SCHIG15_3_Jul05IDs) <- "SCHIG15"
 
 PoolCollections.GCL("SCHIG15", loci = loci24, IDs = SCHIG15_3_Jul05IDs, newname = "SCHIG15_3_Jul05")
@@ -460,6 +462,7 @@ SCHIG15_3_Jul05_SampleSizes[, "Duplicate"] <- ColSize_SCHIG15_3_Jul05_PostMissLo
 SCHIG15_3_Jul05_SampleSizes[, "Final"] <- ColSize_SCHIG15_3_Jul05_PostDuplicate
 
 write.xlsx(SCHIG15_3_Jul05_SampleSizes, file = "Output/SCHIG15_3_Jul05_SampleSizes.xlsx")
+dput(x = SCHIG15_1_Jun27.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG15_1_Jun27_IDs.txt")
 
 ## Combine loci
 LocusControl
@@ -607,7 +610,7 @@ dput(x = LocusControl, file = "Objects/OriginalLocusControl_4_Jul12.txt")
 unique(SCHIG15.gcl$attributes$CAPTURE_DATE)
 SCHIG15_4_Jul12IDs <- AttributesToIDs.GCL(silly = "SCHIG15", attribute = "CAPTURE_DATE", matching = unique(SCHIG15.gcl$attributes$CAPTURE_DATE)[4])
 
-SCHIG15_4_Jul12IDs <- list(as.numeric(na.omit(SCHIG15_4_Jul12IDs)))
+SCHIG15_4_Jul12IDs <- list(na.omit(SCHIG15_4_Jul12IDs))
 names(SCHIG15_4_Jul12IDs) <- "SCHIG15"
 
 PoolCollections.GCL("SCHIG15", loci = loci24, IDs = SCHIG15_4_Jul12IDs, newname = "SCHIG15_4_Jul12")
@@ -653,6 +656,7 @@ SCHIG15_4_Jul12_SampleSizes[, "Final"] <- ColSize_SCHIG15_4_Jul12_PostDuplicate
 SCHIG15_4_Jul12_SampleSizes
 
 write.xlsx(SCHIG15_4_Jul12_SampleSizes, file = "Output/SCHIG15_4_Jul12_SampleSizes.xlsx")
+dput(x = SCHIG15_1_Jun27.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG15_1_Jun27_IDs.txt")
 
 ## Combine loci
 LocusControl
@@ -807,7 +811,7 @@ dput(x = LocusControl, file = "Objects/OriginalLocusControl_5_Jul18.txt")
 unique(SCHIG15.gcl$attributes$CAPTURE_DATE)
 SCHIG15_5_Jul18IDs <- AttributesToIDs.GCL(silly = "SCHIG15", attribute = "CAPTURE_DATE", matching = unique(SCHIG15.gcl$attributes$CAPTURE_DATE)[5])
 
-SCHIG15_5_Jul18IDs <- list(as.numeric(na.omit(SCHIG15_5_Jul18IDs)))
+SCHIG15_5_Jul18IDs <- list(na.omit(SCHIG15_5_Jul18IDs))
 names(SCHIG15_5_Jul18IDs) <- "SCHIG15"
 
 PoolCollections.GCL("SCHIG15", loci = loci24, IDs = SCHIG15_5_Jul18IDs, newname = "SCHIG15_5_Jul18")
@@ -853,6 +857,7 @@ SCHIG15_5_Jul18_SampleSizes[, "Final"] <- ColSize_SCHIG15_5_Jul18_PostDuplicate
 SCHIG15_5_Jul18_SampleSizes
 
 write.xlsx(SCHIG15_5_Jul18_SampleSizes, file = "Output/SCHIG15_5_Jul18_SampleSizes.xlsx")
+dput(x = SCHIG15_1_Jun27.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG15_1_Jun27_IDs.txt")
 
 ## Combine loci
 LocusControl
@@ -1006,7 +1011,7 @@ dput(x = LocusControl, file = "Objects/OriginalLocusControl_6_Jul25.txt")
 unique(SCHIG15.gcl$attributes$CAPTURE_DATE)
 SCHIG15_6_Jul25IDs <- AttributesToIDs.GCL(silly = "SCHIG15", attribute = "CAPTURE_DATE", matching = unique(SCHIG15.gcl$attributes$CAPTURE_DATE)[6])
 
-SCHIG15_6_Jul25IDs <- list(as.numeric(na.omit(SCHIG15_6_Jul25IDs)))
+SCHIG15_6_Jul25IDs <- list(na.omit(SCHIG15_6_Jul25IDs))
 names(SCHIG15_6_Jul25IDs) <- "SCHIG15"
 
 PoolCollections.GCL("SCHIG15", loci = loci24, IDs = SCHIG15_6_Jul25IDs, newname = "SCHIG15_6_Jul25")
@@ -1052,6 +1057,7 @@ SCHIG15_6_Jul25_SampleSizes[, "Final"] <- ColSize_SCHIG15_6_Jul25_PostDuplicate
 SCHIG15_6_Jul25_SampleSizes
 
 write.xlsx(SCHIG15_6_Jul25_SampleSizes, file = "Output/SCHIG15_6_Jul25_SampleSizes.xlsx")
+dput(x = SCHIG15_1_Jun27.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG15_1_Jun27_IDs.txt")
 
 ## Combine loci
 LocusControl
