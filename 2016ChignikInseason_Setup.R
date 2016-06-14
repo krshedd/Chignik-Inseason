@@ -56,18 +56,15 @@ dput(x = GeneticEstimates2016, file = "2016/Objects/GeneticEstimates2016.txt")
 #### Making a formula to put out report NEW ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Get average values for logistic regression from Birch Foster via e-mail on 6/23
-# "2016/averagemodel_fromBirch20160624.xlsx"
-birch.lwr <- as.numeric(readClipboard())
-birch.upr <- as.numeric(readClipboard())
+birch.dat <- read.table(file = "2016/averageChigISGmodel2010to2015.txt", header = TRUE)
+str(birch.dat)
+
+birch.lwr <- birch.dat$lower[which(birch.dat$date == "15-Jun"):which(birch.dat$date == "31-Jul")]
+birch.upr <- birch.dat$upper[which(birch.dat$date == "15-Jun"):which(birch.dat$date == "31-Jul")]
 names(birch.lwr) <- format(seq(from = as.Date("6/15", format = "%m/%d"), to = as.Date("7/31", format = "%m/%d"), by = "day"), format = "%m/%d")
 names(birch.upr) <- names(birch.lwr)
 dput(x = birch.lwr, file = "2016/Objects/birch.lwr.txt")
 dput(x = birch.upr, file = "2016/Objects/birch.upr.txt")
-
-## THD modifying on 062615
-birch.lwr <- dget(file = "2016/Objects/birch.lwr.txt")
-birch.upr <- dget(file = "2016/Objects/birch.upr.txt")
 
 
 #Test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -79,18 +76,21 @@ Included = 190
 Month = "June"
 Day = 27
 
-NewData <- dget(file = "2016/Estimates objects/SCHIG15_2_Jul01_Estimates.txt")
+NewData <- dget(file = "2015/Estimates objects/SCHIG15_2_Jul01_Estimates.txt")
 Period = 2
 NumSampled = 189
 NumAnalyzed = 189
 Included = 188
 Month = "July"
 Day = 01
-Year <- 2016 ## Added year
+Year <- 2015 ## Added year
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
 
 ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = sampled, NumAnalyzed = anlayzed, Included = 190, Month = "June", Day = 28) {
+  
+  start.wd <- getwd()
+  setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
   
   GeneticEstimates2016 <- dget(file = "2016/Objects/GeneticEstimates2016.txt")
   day <- as.numeric(as.Date(paste(Month, Day), format = "%B %d") - as.Date("05/24", format = "%m/%d"))
@@ -103,9 +103,9 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
   Year <- rev(rownames(Black2010to2016Means))[1]
   
   ## Adding this set of estimates to summary object
-  Black2010to2016Means[6, Period] <- NewData$Stats[[1]][1, "mean"]
-  Black2010to2016Uppers[6, Period] <- NewData$Stats[[1]][1, "95%"]
-  Black2010to2016Lowers[6, Period] <- NewData$Stats[[1]][1, "5%"]
+  Black2010to2016Means[Year, Period] <- NewData$Stats[[1]][1, "mean"]
+  Black2010to2016Uppers[Year, Period] <- NewData$Stats[[1]][1, "95%"]
+  Black2010to2016Lowers[Year, Period] <- NewData$Stats[[1]][1, "5%"]
   
   wrapper <- dget(file = "2013/Objects/wrapper.txt")
   
@@ -160,7 +160,10 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
   text(x = seq(from = 27, to = 67, by = 5), y = -10, labels = c("20-Jun", "25-Jun", "30-Jun", "5-Jul", "10-Jul", "15-Jul", "20-Jul", "25-Jul", "30-Jul"), srt = 45, xpd = TRUE)
   axis(side = 2, pos = 27, at = seq(from = 0, to = 100, by = 25), labels = NA)
   text(x = 22, y = seq(from = 0, to = 100, by = 25), labels = seq(from = 0, to = 100, by = 25), srt = 0, xpd = TRUE, cex = 1.3)
-  polygon(x = c(27:68, 68:27), y = c(birch.upr[-c(1:5)] * 100, rev(birch.lwr[-c(1:5)] * 100)), col = "grey70", border = FALSE)  ## col from grey50 to grey70; THD on 062615
+  polygon(x = c(27:68, 68:27), 
+          y = c(birch.upr[which(names(birch.upr) == "06/20"):which(names(birch.upr) == "07/31")] * 100,
+                rev(birch.lwr[which(names(birch.upr) == "06/20"):which(names(birch.upr) == "07/31")] * 100)), 
+          col = "grey70", border = FALSE)  ## col from grey50 to grey70; THD on 062615
   arrows(x0 = GeneticEstimates2016[, "Day"], y0 = GeneticEstimates2016[, "5%"] * 100, x1 = GeneticEstimates2016[, "Day"], y1 = GeneticEstimates2016[, "95%"] * 100, angle = 90, code = 3, lwd = 3, col = "black", length = 0.1)  ## lwd from 3 to 2; length from 0.15 to 0.1; THD on 062615
   points(x = GeneticEstimates2016[, "Day"], y = GeneticEstimates2016[, "BlackMean"] * 100, col = "black", cex = 2, pch = 21, bg='red')  ## cex from 2 to 1.5; pch from 16 to 21; THD on 062615
   abline(h = 50, lwd = 2)
@@ -185,6 +188,7 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
   dput(Black2010to2016Uppers, file = "2016/Objects/Black2010to2016Uppers.txt")
   dput(Black2010to2016Lowers, file = "2016/Objects/Black2010to2016Lowers.txt")
   
+  setwd(start.wd)
 }
 
 
