@@ -87,7 +87,7 @@ Year <- 2015 ## Added year
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
 
-ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = sampled, NumAnalyzed = anlayzed, Included = 190, Month = "June", Day = 28) {
+ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = sampled, NumAnalyzed = anlayzed, Included = 190, Month = "June", Day = 27) {
   
   start.wd <- getwd()
   setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
@@ -176,10 +176,14 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
   mtext(wrapper(paste("Genetic Stock Composition Estimates of Black (Early Run) Sockeye Salmon Sampled at the Chignik Weir, ", Month, " ", Day, ", ", Year, ".", sep = ""), width = 65), side = 3, line = 1, cex = 1.25, font = 2, adj = 0.5)
   
   ## Plot 4:
-  par(mar = c(3, 1, 1, 1))
+  par(mar = c(0, 1, 1, 1))
   plot(1:3, type = "n", axes = FALSE, xlab = "", ylab = "")
-  text(x = 1.1, y = 1, labels = wrapper("This project is funded by the Alaska Sustainable Salmon Fund (http://www.akssf.org/Default.aspx?id=3423). Samples were collected at the Chignik weir and analyzed at the Gene Conservation Laboratory by Commercial Fisheries Division staff. These results are in-season estimates and are therefore preliminary in nature. Final quality control will be conducted post-season."
+  text(x = 1.1, y = 1.95, labels = wrapper("This project is funded by the Alaska Sustainable Salmon Fund (http://www.akssf.org/Default.aspx?id=3423). Samples were collected at the Chignik weir and analyzed at the Gene Conservation Laboratory by Commercial Fisheries Division staff. These results are in-season estimates and are therefore preliminary in nature. Final quality control will be conducted post-season."
                                         , width = 115), adj = c(0, 0), cex = 0.8)
+  text(x = 1.1, y = 1.5, labels = wrapper("Page 1 of 1", width = 115), adj = c(0, 0), cex = 0.8)
+  text(x = 2.88, y = 1.5, labels = paste("Reported as of: ", format(Sys.time(), "%B %d, %Y"), sep = ''), adj = c(1, 0), cex = 0.8)
+  text(x = 2.88, y = 1.2, labels = paste(format(Sys.time(), "%l:%M%p")), adj = c(1, 0), cex = 0.8)
+  
   dev.off()
   
   
@@ -196,7 +200,7 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
 # Testing the function
 SCHIG15_1_Jun27_Estimates_TEST <- dget(file = "V:/WORK/Sockeye/Chignik/2015 Chignik Inseason/Kyle/Estimates objects/SCHIG14_1_Jun28_Estimates.txt")
 
-ChignikInseasonReport.f(NewData = SCHIG15_1_Jun27_Estimates_TEST, Period = 1, NumSampled = 190, NumAnalyzed = 190, Included = 189, Month = "June", Day = 27)
+ChignikInseasonReport.f(NewData = NewData, Period = 1, NumSampled = 190, NumAnalyzed = 190, Included = 189, Month = "June", Day = 27)
 
 # It works!!!
 # Go reset "Lowers" "Means" and "Uppers"
