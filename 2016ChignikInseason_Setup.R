@@ -89,12 +89,16 @@ setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
 
 ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = sampled, NumAnalyzed = anlayzed, Included = 190, Month = "June", Day = 27) {
   
+  if(length(NewData) == 2) {
+    NewData <- NewData$Stats
+  }
+  
   start.wd <- getwd()
   setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
   
   GeneticEstimates2016 <- dget(file = "2016/Objects/GeneticEstimates2016.txt")
   day <- as.numeric(as.Date(paste(Month, Day), format = "%B %d") - as.Date("05/24", format = "%m/%d"))
-  GeneticEstimates2016[Period, ] <- c(day, NewData[[1]][[1]][1, c("mean", "5%", "95%", "sd")]) 
+  GeneticEstimates2016[Period, ] <- c(day, NewData[[1]]["Black Lake", c("mean", "5%", "95%", "sd")]) 
   
   Black2010to2016Means <- dget(file = "2016/Objects/Black2010to2016Means.txt")
   Black2010to2016Uppers <- dget(file = "2016/Objects/Black2010to2016Uppers.txt")
@@ -103,9 +107,9 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
   Year <- rev(rownames(Black2010to2016Means))[1]
   
   ## Adding this set of estimates to summary object
-  Black2010to2016Means[Year, Period] <- NewData$Stats[[1]][1, "mean"]
-  Black2010to2016Uppers[Year, Period] <- NewData$Stats[[1]][1, "95%"]
-  Black2010to2016Lowers[Year, Period] <- NewData$Stats[[1]][1, "5%"]
+  Black2010to2016Means[Year, Period] <- NewData[[1]]["Black Lake", "mean"]
+  Black2010to2016Uppers[Year, Period] <- NewData[[1]]["Black Lake", "95%"]
+  Black2010to2016Lowers[Year, Period] <- NewData[[1]]["Black Lake", "5%"]
   
   wrapper <- dget(file = "2013/Objects/wrapper.txt")
   
@@ -132,18 +136,18 @@ ChignikInseasonReport.f <- function(NewData = XX, Period = period, NumSampled = 
   par(mar = c(1, 1, 0, 1))
   plot(1:5, type = "n", axes = FALSE, xlab = "", ylab = "")
   arrows(x0 = 0, y0 = 5, x1 = 5, y1 = 5, length = 0)
-  text(x = 4.5, y = 4.75, labels = "90%", adj = 0.5, font = 2, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
-  text(x = 3, y = 4.75, labels = "Stock", adj = 0.5, font = 2, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
-  text(x = c(3, 4.5), y = 4, labels = c("Composition", "Confidence Intervals"), adj = 0.5, font = 2, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
-  text(x = 1, y = 3.25, labels = "Reporting Group", adj = 0, font = 2, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
-  text(x = c(3, 4.2, 4.7), y = 3.25, labels = c("Estimate", "Lower", "Upper"), adj = 0.5, font = 2, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
+  text(x = 4.5, y = 4.75, labels = "90%", adj = 0.5, font = 2, cex = 1.5)
+  text(x = 3, y = 4.75, labels = "Stock", adj = 0.5, font = 2, cex = 1.5)
+  text(x = c(3, 4.5), y = 4, labels = c("Composition", "Confidence Intervals"), adj = 0.5, font = 2, cex = 1.5)
+  text(x = 1, y = 3.25, labels = "Reporting Group", adj = 0, font = 2, cex = 1.5)
+  text(x = c(3, 4.2, 4.7), y = 3.25, labels = c("Estimate", "Lower", "Upper"), adj = 0.5, font = 2, cex = 1.5)
   arrows(x0 = 0, y0 = 3, x1 = 5, y1 = 3, length = 0)
-  text(x = 1, y = c(2.5, 1.75), labels = c("Black (Early Run)", "Chignik (Late Run)"), adj = 0, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
+  text(x = 1, y = c(2.5, 1.75), labels = c("Black (Early Run)", "Chignik (Late Run)"), adj = 0, cex = 1.5)
   
   ## Change the estimate object name here:
-  text(x = 3, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData$Stats[[1]][, "mean"]*100), adj = 0.5, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
-  text(x = 4.2, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData$Stats[[1]][, "5%"]*100), adj = 0.5, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
-  text(x = 4.7, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData$Stats[[1]][, "95%"]*100), adj = 0.5, cex = 1.5)  ## cex from 1.25 to 1.5; THD on 062615
+  text(x = 3, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData[[1]][, "mean"]*100), adj = 0.5, cex = 1.5)
+  text(x = 4.2, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData[[1]][, "5%"]*100), adj = 0.5, cex = 1.5)
+  text(x = 4.7, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData[[1]][, "95%"]*100), adj = 0.5, cex = 1.5)
   
   arrows(x0 = 0, y0 = 1.5, x1 = 5, y1 = 1.5, length = 0)
   
