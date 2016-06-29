@@ -141,7 +141,7 @@ dput(ChignikMixtureFormat, file = "Objects/ChignikMixtureFormat.txt")
 ## Start Priors are based upon best available information, Birch's logistic fit of the past five years for the 28th: 
 birch.lwr <- dget(file = "Objects/birch.lwr.txt")
 birch.upr <- dget(file = "Objects/birch.upr.txt")
-start.prior.upr <- mean(x = c(birch.lwr["06/28"], birch.upr["06/28"]))
+start.prior.upr <- mean(x = c(birch.lwr["06/27"], birch.upr["06/27"]))
 Chignik2016StartPriorWeights <- c(start.prior.upr, 1-start.prior.upr)
 Chignik2016StartPrior <- Prior.GCL(groupvec = Groupvec7, groupweights = Chignik2016StartPriorWeights, minval = 0.01)
 dput(x = Chignik2016StartPrior, file = "Objects/Chignik2016StartPrior.txt")
@@ -160,7 +160,7 @@ dir.create("BAYES/Output/SCHIG16_1_Jun27")
 
 ## This is the summarizing and dputting of estimates
 SCHIG16_1_Jun27_Estimates <- CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "BAYES/Output", mixvec = "SCHIG16_1_Jun27",
-                                                          prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE) ## Same here, will you use the posterior?  They really blow up memory usage.
+                                                          prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
 dput(x = SCHIG16_1_Jun27_Estimates, file="Estimates objects/SCHIG16_1_Jun27_Estimates.txt")
 
 # Verify that Gelman-Rubin < 1.2
@@ -171,7 +171,7 @@ par(mfrow = c(2, 1), mar = c(1.1, 4.1, 4.1, 2.1))
 plot(SCHIG16_1_Jun27_Estimates$Output$SCHIG16_1_Jun27[seq(from = 1, to = 100000, by = 10), 1], type = "l", ylim = c(0, 1), ylab = "", main = "Black Lake", xlab = "")
 abline(v = seq(from = 0, to = 10000, by = 2000))
 par(mar = c(5.1, 4.1, 4.1, 2.1))
-plot(SCHIG16_1_Jun27_Estimates$Output$SCHIG16_1_Jun27[seq(from = 1, to = 100000, by = 10), 2], type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Iterate", cex.lab = 1.2)
+plot(SCHIG16_1_Jun27_Estimates$Output$SCHIG16_1_Jun27[seq(from = 1, to = 100000, by = 10), 2], type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Repetitions", cex.lab = 1.2)
 abline(v = seq(from = 0, to = 10000, by = 2000))
 mtext(text = "Posterior", side = 2, outer = TRUE, line = -1, cex = 1.2)
 
