@@ -708,8 +708,8 @@ require('xlsx')
 
 ## Get sample size by locus
 Original_SCHIG16_4_Jul12_SampleSizebyLocus <- SampSizeByLocus.GCL("SCHIG16_4_Jul12", loci24)
-min(Original_SCHIG16_4_Jul12_SampleSizebyLocus) ## Amazing 188
-apply(Original_SCHIG16_4_Jul12_SampleSizebyLocus, 1, min) / SCHIG16_4_Jul12.gcl$n  # 0.99
+min(Original_SCHIG16_4_Jul12_SampleSizebyLocus) ## 163
+apply(Original_SCHIG16_4_Jul12_SampleSizebyLocus, 1, min) / SCHIG16_4_Jul12.gcl$n  # 0.86
 
 Original_SCHIG16_4_Jul12_PercentbyLocus <- apply(Original_SCHIG16_4_Jul12_SampleSizebyLocus, 1, function(row) {row / max(row)} )
 which(Original_SCHIG16_4_Jul12_PercentbyLocus < 0.8)  # no re-runs!
@@ -863,6 +863,227 @@ dput(x = Chignik2016Period5Prior, file = "Objects/Chignik2016Period5Prior.txt")
 
 
 
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Round 5 July 17 2016 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ls()
+rm(list = ls(all = TRUE))
+search()
+getwd()
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016")
+## save.image("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016/2016ChignikInseason_5.RData")
+## load("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016/2016ChignikInseason_5.RData")
+
+#This sources all of the new GCL functions to this workspace
+source("C:/Users/krshedd/Documents/R/Functions.GCL.R")
+source("H:/R Source Scripts/Functions.GCL_KS.R")
+#source("C:/Users/thdann/Documents/R/Functions.GCL.R")
+
+username = "krshedd"
+#username = "thdann"
+
+## Create Locus Control
+CreateLocusControl.GCL(markersuite = "Sockeye2013Chignik_24SNPs", username = username, password = password)
+
+## Save original LocusControl
+loci24 <- LocusControl$locusnames
+mito.loci24 <- which(LocusControl$ploidy == 1)
+
+dput(x = LocusControl, file = "Objects/OriginalLocusControl_5_Jul17.txt")
+dput(x = loci24, file = "Objects/loci24.txt")
+dput(x = mito.loci24, file = "Objects/mito.loci24.txt")
+
+## Pull all data for each silly code and create .gcl objects for each
+LOKI2R.GCL(sillyvec = "SCHIG16", username = username, password = password)
+rm(username, password)
+
+## Save unaltered .gcl's as back-up:
+dput(x = SCHIG16.gcl, file = paste("Raw genotypes/SCHIG16_5_Jul17.gcl.txt", sep = ''))
+SCHIG16.gcl$n
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Define strata-ID associations ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Sample dates defined inseason.
+
+## Chignik 2016.4 July 12
+unique(SCHIG16.gcl$attributes$CAPTURE_DATE)
+SCHIG16_5_Jul17IDs <- AttributesToIDs.GCL(silly = "SCHIG16", attribute = "CAPTURE_DATE", 
+                                          matching = unique(SCHIG16.gcl$attributes$CAPTURE_DATE)[5])
+
+SCHIG16_5_Jul17IDs <- list(na.omit(SCHIG16_5_Jul17IDs))
+names(SCHIG16_5_Jul17IDs) <- "SCHIG16"
+
+PoolCollections.GCL("SCHIG16", loci = loci24, IDs = SCHIG16_5_Jul17IDs, newname = "SCHIG16_5_Jul17")
+SCHIG16_5_Jul17.gcl$n ## 190
+table(SCHIG16_5_Jul17.gcl$attributes$CAPTURE_DATE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Data QC/Massage ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+require('xlsx')
+
+## Get sample size by locus
+Original_SCHIG16_5_Jul17_SampleSizebyLocus <- SampSizeByLocus.GCL("SCHIG16_5_Jul17", loci24)
+min(Original_SCHIG16_5_Jul17_SampleSizebyLocus) ## 163
+apply(Original_SCHIG16_5_Jul17_SampleSizebyLocus, 1, min) / SCHIG16_5_Jul17.gcl$n  # 0.86
+
+Original_SCHIG16_5_Jul17_PercentbyLocus <- apply(Original_SCHIG16_5_Jul17_SampleSizebyLocus, 1, function(row) {row / max(row)} )
+which(Original_SCHIG16_5_Jul17_PercentbyLocus < 0.8)  # no re-runs!
+
+require(lattice)
+new.colors <- colorRampPalette(c("black", "white"))
+levelplot(t(Original_SCHIG16_5_Jul17_PercentbyLocus), 
+          col.regions = new.colors, 
+          at = seq(from = 0, to = 1, length.out = 100), 
+          main = "% Genotyped", xlab = "SILLY", ylab = "Locus", 
+          scales = list(x = list(rot = 90)), 
+          aspect = "fill")  # aspect = "iso" will make squares
+
+
+## Get number of individuals per silly before removing missing loci individuals
+Original_SCHIG16_5_Jul17_ColSize <- SCHIG16_5_Jul17.gcl$n
+
+## Remove individuals with >20% missing data
+SCHIG16_5_Jul17_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = "SCHIG16_5_Jul17", proportion = 0.8)
+
+## Get number of individuals per silly after removing missing loci individuals
+ColSize_SCHIG16_5_Jul17_PostMissLoci <- SCHIG16_5_Jul17.gcl$n
+
+SCHIG16_5_Jul17_SampleSizes <- matrix(data = NA, nrow = 1, ncol = 4, 
+                                      dimnames = list("SCHIG16_5_Jul17", c("Genotyped", "Missing", "Duplicate", "Final")))
+SCHIG16_5_Jul17_SampleSizes[, "Genotyped"] <- Original_SCHIG16_5_Jul17_ColSize
+SCHIG16_5_Jul17_SampleSizes[, "Missing"] <- Original_SCHIG16_5_Jul17_ColSize - ColSize_SCHIG16_5_Jul17_PostMissLoci
+
+## Check within collections for duplicate individuals.
+SCHIG16_5_Jul17_DuplicateCheck95MinProportion <- 
+  CheckDupWithinSilly.GCL(sillyvec = "SCHIG16_5_Jul17", loci = loci24, quantile = NULL, minproportion = 0.95)
+
+## Remove duplicate individuals
+SCHIG16_5_Jul17_RemovedDups <- RemoveDups.GCL(SCHIG16_5_Jul17_DuplicateCheck95MinProportion)
+
+## Get number of individuals per silly after removing duplicate individuals
+ColSize_SCHIG16_5_Jul17_PostDuplicate <- SCHIG16_5_Jul17.gcl$n
+
+SCHIG16_5_Jul17_SampleSizes[, "Duplicate"] <- ColSize_SCHIG16_5_Jul17_PostMissLoci-ColSize_SCHIG16_5_Jul17_PostDuplicate
+SCHIG16_5_Jul17_SampleSizes[, "Final"] <- ColSize_SCHIG16_5_Jul17_PostDuplicate
+
+SCHIG16_5_Jul17_SampleSizes
+write.xlsx(SCHIG16_5_Jul17_SampleSizes, file = "Output/SCHIG16_5_Jul17_SampleSizes.xlsx")
+dput(x = SCHIG16_5_Jul17.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG16_5_Jul17_IDs.txt")
+
+
+
+## Combine loci
+LocusControl
+CombineLoci.GCL(sillyvec = "SCHIG16_5_Jul17", markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = "SCHIG16_5_Jul17", markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+
+## Geneop
+# Kick out Genepop file to look for gross excesses of hets - using HWE probability test option with default settings to see P-values w/ Fis:
+gcl2Genepop.GCL(sillyvec = "SCHIG16_5_Jul17", 
+                loci = loci24[-mito.loci24], 
+                path = "Genepop/SCHIG16_5_Jul17_23nuclearloci.gen", VialNums = TRUE)
+
+# Read in Genepop output .P file
+HWE <- ReadGenepopHWE.GCL(file = "Genepop/SCHIG16_5_Jul17_23nuclearloci.txt.P")
+
+# Plot Fis values
+plot(sort(HWE[, "WC Fis"]), type = "h", lwd = 10, ylab = "WC Fis", xlab = "Loci (sorted)", col = "grey40"); abline(h = 0, lwd = 5)
+
+# Look at data for any markers out of HWE
+HWE[HWE$PValue < 0.05, ]
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Get MSA Objects ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Baseline 2012")
+
+## Get baseline objects needed for MSA
+Chignik7Populations <- dget(file = "Objects/Chignik7Populations.txt")
+Groupvec7 <- dget(file = "Objects/Groupvec7.txt")
+Chignik24BaselineFormat <- dget(file = "Objects/Chignik24BaselineFormat.txt")
+Inits <- dget(file = "Objects/Inits.txt")
+loci24MSA <- dget(file = "Objects/loci24.txt")
+ChignikGroups <- dget(file = "V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2013/Objects/ChignikGroups.txt")
+
+## Defining the random seeds as the same as WASSIP mixtures for repeatability.
+WASSIPSockeyeSeeds <- dget(file = "V:/Analysis/5_Coastwide/Sockeye/WASSIP/Mixture/Objects/WASSIPSockeyeSeeds.txt")
+
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016")
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Round 4 MSA ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Dumping mixture file:
+ChignikMixtureFormat <- CreateMixture.GCL(sillys = "SCHIG16_5_Jul17", loci = loci24MSA, IDs = NULL, mixname = "SCHIG16_5_Jul17",
+                                          dir = "BAYES/Mixture", type = "BAYES", PT = FALSE)
+dput(ChignikMixtureFormat, file = "Objects/ChignikMixtureFormat.txt")
+
+
+## Start Priors are based upon best available information, Birch's logistic fit of the past five years for the 28th: 
+Chignik2016Period5Prior <- dget(file = "Objects/Chignik2016Period5Prior.txt")
+
+
+## Dump Control Files
+CreateControlFile.GCL(sillyvec = Chignik7Populations, loci = loci24MSA, mixname = "SCHIG16_5_Jul17", 
+                      basename = "ChignikPops24Loci", suffix = "", nreps = 40000, nchains = 5,
+                      groupvec = Groupvec7, priorvec = Chignik2016Period5Prior, initmat = Inits, 
+                      dir = "BAYES/Control", seeds = WASSIPSockeyeSeeds, thin = c(1,1,100),
+                      mixfortran = ChignikMixtureFormat, basefortran = Chignik24BaselineFormat, switches = "F T F T T T F") 
+
+## Create output directory
+dir.create("BAYES/Output/SCHIG16_5_Jul17")
+
+## Run BAYES, check Raftery-Lewis for each chain, and summarize stats and check for convergence (G-R) in 5th chain
+
+## This is the summarizing and dputting of estimates
+SCHIG16_5_Jul17_Estimates <- 
+  CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "BAYES/Output", mixvec = "SCHIG16_5_Jul17",
+                               prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
+dput(x = SCHIG16_5_Jul17_Estimates, file="Estimates objects/SCHIG16_5_Jul17_Estimates.txt")
+
+# Verify that Gelman-Rubin < 1.2
+SCHIG16_5_Jul17_Estimates[[1]][[1]][, "GR"]
+
+# View traceplot
+par(mfrow = c(2, 1), mar = c(1.1, 4.1, 4.1, 2.1))
+plot(SCHIG16_5_Jul17_Estimates$Output$SCHIG16_5_Jul17[seq(from = 1, to = 100000, by = 10), 1], 
+     type = "l", ylim = c(0, 1), ylab = "", main = "Black Lake", xlab = "")
+abline(v = seq(from = 0, to = 10000, by = 2000))
+par(mar = c(5.1, 4.1, 4.1, 2.1))
+plot(SCHIG16_5_Jul17_Estimates$Output$SCHIG16_5_Jul17[seq(from = 1, to = 100000, by = 10), 2], 
+     type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Repetitions", cex.lab = 1.2)
+abline(v = seq(from = 0, to = 10000, by = 2000))
+mtext(text = "Posterior", side = 2, outer = TRUE, line = -1, cex = 1.2)
+
+## This is the formatting and writing of tables of estimates 
+write.xlsx(x = SCHIG16_5_Jul17_Estimates$Stats[[1]],
+           file="Estimates tables/SCHIG16_5_Jul17_Estimates Table.xlsx")
+
+## Write Update Report
+ChignikInseasonReport.f <- dget(file="Objects/ChignikInseasonReport.f.txt")
+
+SCHIG16_5_Jul17_SampleSizes
+
+
+ChignikInseasonReport.f(NewData = SCHIG16_5_Jul17_Estimates, Period = 5, NumSampled = 190, 
+                        NumAnalyzed = SCHIG16_5_Jul17_SampleSizes[1, "Genotyped"],
+                        Included = SCHIG16_5_Jul17_SampleSizes[1, "Final"], Month = "July", Day = 17)
+
+
+## Prior for next round
+Chignik2016Period6Prior <- Prior.GCL(groupvec = Groupvec7, groupweights = SCHIG16_5_Jul17_Estimates$Stats[[1]][, 1], minval = 0.01)
+dput(x = Chignik2016Period6Prior, file = "Objects/Chignik2016Period6Prior.txt")
+
+## save.image("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016/2016ChignikInseason_5.RData")
 
 
 
