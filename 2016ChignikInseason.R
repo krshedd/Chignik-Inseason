@@ -1093,7 +1093,7 @@ dput(x = Chignik2016Period6Prior, file = "Objects/Chignik2016Period6Prior.txt")
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Round 6 July 17 2016 ####
+#### Round 6 July 26/27 2016 ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ls()
@@ -1119,7 +1119,7 @@ CreateLocusControl.GCL(markersuite = "Sockeye2013Chignik_24SNPs", username = use
 loci24 <- LocusControl$locusnames
 mito.loci24 <- which(LocusControl$ploidy == 1)
 
-dput(x = LocusControl, file = "Objects/OriginalLocusControl_6_Jul24.txt")
+dput(x = LocusControl, file = "Objects/OriginalLocusControl_6_Jul26.txt")
 dput(x = loci24, file = "Objects/loci24.txt")
 dput(x = mito.loci24, file = "Objects/mito.loci24.txt")
 
@@ -1128,7 +1128,7 @@ LOKI2R.GCL(sillyvec = "SCHIG16", username = username, password = password)
 rm(username, password)
 
 ## Save unaltered .gcl's as back-up:
-dput(x = SCHIG16.gcl, file = paste("Raw genotypes/SCHIG16_6_Jul24.gcl.txt", sep = ''))
+dput(x = SCHIG16.gcl, file = paste("Raw genotypes/SCHIG16_6_Jul26.gcl.txt", sep = ''))
 SCHIG16.gcl$n
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1136,17 +1136,17 @@ SCHIG16.gcl$n
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Sample dates defined inseason.
 
-## Chignik 2016.6 July 17
+## Chignik 2016.6 July 26/27
 unique(SCHIG16.gcl$attributes$CAPTURE_DATE)
-SCHIG16_6_Jul24IDs <- AttributesToIDs.GCL(silly = "SCHIG16", attribute = "CAPTURE_DATE", 
-                                          matching = unique(SCHIG16.gcl$attributes$CAPTURE_DATE)[6])
+SCHIG16_6_Jul26IDs <- AttributesToIDs.GCL(silly = "SCHIG16", attribute = "CAPTURE_DATE", 
+                                          matching = unique(SCHIG16.gcl$attributes$CAPTURE_DATE)[6:7])
 
-SCHIG16_6_Jul24IDs <- list(na.omit(SCHIG16_6_Jul24IDs))
-names(SCHIG16_6_Jul24IDs) <- "SCHIG16"
+SCHIG16_6_Jul26IDs <- list(na.omit(SCHIG16_6_Jul26IDs))
+names(SCHIG16_6_Jul26IDs) <- "SCHIG16"
 
-PoolCollections.GCL("SCHIG16", loci = loci24, IDs = SCHIG16_6_Jul24IDs, newname = "SCHIG16_6_Jul24")
-SCHIG16_6_Jul24.gcl$n ## 190
-table(SCHIG16_6_Jul24.gcl$attributes$CAPTURE_DATE)
+PoolCollections.GCL("SCHIG16", loci = loci24, IDs = SCHIG16_6_Jul26IDs, newname = "SCHIG16_6_Jul26")
+SCHIG16_6_Jul26.gcl$n ## 190
+table(SCHIG16_6_Jul26.gcl$attributes$CAPTURE_DATE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Data QC/Massage ####
@@ -1155,16 +1155,16 @@ table(SCHIG16_6_Jul24.gcl$attributes$CAPTURE_DATE)
 require('xlsx')
 
 ## Get sample size by locus
-Original_SCHIG16_6_Jul24_SampleSizebyLocus <- SampSizeByLocus.GCL("SCHIG16_6_Jul24", loci24)
-min(Original_SCHIG16_6_Jul24_SampleSizebyLocus) ## 177
-apply(Original_SCHIG16_6_Jul24_SampleSizebyLocus, 1, min) / SCHIG16_6_Jul24.gcl$n  # 0.86
+Original_SCHIG16_6_Jul26_SampleSizebyLocus <- SampSizeByLocus.GCL("SCHIG16_6_Jul26", loci24)
+min(Original_SCHIG16_6_Jul26_SampleSizebyLocus) ## 177
+apply(Original_SCHIG16_6_Jul26_SampleSizebyLocus, 1, min) / SCHIG16_6_Jul26.gcl$n  # 0.86
 
-Original_SCHIG16_6_Jul24_PercentbyLocus <- apply(Original_SCHIG16_6_Jul24_SampleSizebyLocus, 1, function(row) {row / max(row)} )
-which(Original_SCHIG16_6_Jul24_PercentbyLocus < 0.8)  # no re-runs!
+Original_SCHIG16_6_Jul26_PercentbyLocus <- apply(Original_SCHIG16_6_Jul26_SampleSizebyLocus, 1, function(row) {row / max(row)} )
+which(Original_SCHIG16_6_Jul26_PercentbyLocus < 0.8)  # no re-runs!
 
 require(lattice)
 new.colors <- colorRampPalette(c("black", "white"))
-levelplot(t(Original_SCHIG16_6_Jul24_PercentbyLocus), 
+levelplot(t(Original_SCHIG16_6_Jul26_PercentbyLocus), 
           col.regions = new.colors, 
           at = seq(from = 0, to = 1, length.out = 100), 
           main = "% Genotyped", xlab = "SILLY", ylab = "Locus", 
@@ -1173,51 +1173,51 @@ levelplot(t(Original_SCHIG16_6_Jul24_PercentbyLocus),
 
 
 ## Get number of individuals per silly before removing missing loci individuals
-Original_SCHIG16_6_Jul24_ColSize <- SCHIG16_6_Jul24.gcl$n
+Original_SCHIG16_6_Jul26_ColSize <- SCHIG16_6_Jul26.gcl$n
 
 ## Remove individuals with >20% missing data
-SCHIG16_6_Jul24_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = "SCHIG16_6_Jul24", proportion = 0.8)
+SCHIG16_6_Jul26_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = "SCHIG16_6_Jul26", proportion = 0.8)
 
 ## Get number of individuals per silly after removing missing loci individuals
-ColSize_SCHIG16_6_Jul24_PostMissLoci <- SCHIG16_6_Jul24.gcl$n
+ColSize_SCHIG16_6_Jul26_PostMissLoci <- SCHIG16_6_Jul26.gcl$n
 
-SCHIG16_6_Jul24_SampleSizes <- matrix(data = NA, nrow = 1, ncol = 4, 
-                                      dimnames = list("SCHIG16_6_Jul24", c("Genotyped", "Missing", "Duplicate", "Final")))
-SCHIG16_6_Jul24_SampleSizes[, "Genotyped"] <- Original_SCHIG16_6_Jul24_ColSize
-SCHIG16_6_Jul24_SampleSizes[, "Missing"] <- Original_SCHIG16_6_Jul24_ColSize - ColSize_SCHIG16_6_Jul24_PostMissLoci
+SCHIG16_6_Jul26_SampleSizes <- matrix(data = NA, nrow = 1, ncol = 4, 
+                                      dimnames = list("SCHIG16_6_Jul26", c("Genotyped", "Missing", "Duplicate", "Final")))
+SCHIG16_6_Jul26_SampleSizes[, "Genotyped"] <- Original_SCHIG16_6_Jul26_ColSize
+SCHIG16_6_Jul26_SampleSizes[, "Missing"] <- Original_SCHIG16_6_Jul26_ColSize - ColSize_SCHIG16_6_Jul26_PostMissLoci
 
 ## Check within collections for duplicate individuals.
-SCHIG16_6_Jul24_DuplicateCheck95MinProportion <- 
-  CheckDupWithinSilly.GCL(sillyvec = "SCHIG16_6_Jul24", loci = loci24, quantile = NULL, minproportion = 0.95)
+SCHIG16_6_Jul26_DuplicateCheck95MinProportion <- 
+  CheckDupWithinSilly.GCL(sillyvec = "SCHIG16_6_Jul26", loci = loci24, quantile = NULL, minproportion = 0.95)
 
 ## Remove duplicate individuals
-SCHIG16_6_Jul24_RemovedDups <- RemoveDups.GCL(SCHIG16_6_Jul24_DuplicateCheck95MinProportion)
+SCHIG16_6_Jul26_RemovedDups <- RemoveDups.GCL(SCHIG16_6_Jul26_DuplicateCheck95MinProportion)
 
 ## Get number of individuals per silly after removing duplicate individuals
-ColSize_SCHIG16_6_Jul24_PostDuplicate <- SCHIG16_6_Jul24.gcl$n
+ColSize_SCHIG16_6_Jul26_PostDuplicate <- SCHIG16_6_Jul26.gcl$n
 
-SCHIG16_6_Jul24_SampleSizes[, "Duplicate"] <- ColSize_SCHIG16_6_Jul24_PostMissLoci-ColSize_SCHIG16_6_Jul24_PostDuplicate
-SCHIG16_6_Jul24_SampleSizes[, "Final"] <- ColSize_SCHIG16_6_Jul24_PostDuplicate
+SCHIG16_6_Jul26_SampleSizes[, "Duplicate"] <- ColSize_SCHIG16_6_Jul26_PostMissLoci-ColSize_SCHIG16_6_Jul26_PostDuplicate
+SCHIG16_6_Jul26_SampleSizes[, "Final"] <- ColSize_SCHIG16_6_Jul26_PostDuplicate
 
-SCHIG16_6_Jul24_SampleSizes
-write.xlsx(SCHIG16_6_Jul24_SampleSizes, file = "Output/SCHIG16_6_Jul24_SampleSizes.xlsx")
-dput(x = SCHIG16_6_Jul24.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG16_6_Jul24_IDs.txt")
+SCHIG16_6_Jul26_SampleSizes
+write.xlsx(SCHIG16_6_Jul26_SampleSizes, file = "Output/SCHIG16_6_Jul26_SampleSizes.xlsx")
+dput(x = SCHIG16_6_Jul26.gcl$attributes$FK_FISH_ID, file = "Final Fish IDs/SCHIG16_6_Jul26_IDs.txt")
 
 
 
 ## Combine loci
 LocusControl
-CombineLoci.GCL(sillyvec = "SCHIG16_6_Jul24", markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
-CombineLoci.GCL(sillyvec = "SCHIG16_6_Jul24", markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+CombineLoci.GCL(sillyvec = "SCHIG16_6_Jul26", markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = "SCHIG16_6_Jul26", markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
 
 ## Geneop
 # Kick out Genepop file to look for gross excesses of hets - using HWE probability test option with default settings to see P-values w/ Fis:
-gcl2Genepop.GCL(sillyvec = "SCHIG16_6_Jul24", 
+gcl2Genepop.GCL(sillyvec = "SCHIG16_6_Jul26", 
                 loci = loci24[-mito.loci24], 
-                path = "Genepop/SCHIG16_6_Jul24_23nuclearloci.gen", VialNums = TRUE)
+                path = "Genepop/SCHIG16_6_Jul26_23nuclearloci.gen", VialNums = TRUE)
 
 # Read in Genepop output .P file
-HWE <- ReadGenepopHWE.GCL(file = "Genepop/SCHIG16_6_Jul24_23nuclearloci.txt.P")
+HWE <- ReadGenepopHWE.GCL(file = "Genepop/SCHIG16_6_Jul26_23nuclearloci.txt.P")
 
 # Plot Fis values
 plot(sort(HWE[, "WC Fis"]), type = "h", lwd = 10, ylab = "WC Fis", xlab = "Loci (sorted)", col = "grey40"); abline(h = 0, lwd = 5)
@@ -1247,7 +1247,7 @@ setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ## Dumping mixture file:
-ChignikMixtureFormat <- CreateMixture.GCL(sillys = "SCHIG16_6_Jul24", loci = loci24MSA, IDs = NULL, mixname = "SCHIG16_6_Jul24",
+ChignikMixtureFormat <- CreateMixture.GCL(sillys = "SCHIG16_6_Jul26", loci = loci24MSA, IDs = NULL, mixname = "SCHIG16_6_Jul26",
                                           dir = "BAYES/Mixture", type = "BAYES", PT = FALSE)
 dput(ChignikMixtureFormat, file = "Objects/ChignikMixtureFormat.txt")
 
@@ -1257,50 +1257,166 @@ Chignik2016Period6Prior <- dget(file = "Objects/Chignik2016Period6Prior.txt")
 
 
 ## Dump Control Files
-CreateControlFile.GCL(sillyvec = Chignik7Populations, loci = loci24MSA, mixname = "SCHIG16_6_Jul24", 
+CreateControlFile.GCL(sillyvec = Chignik7Populations, loci = loci24MSA, mixname = "SCHIG16_6_Jul26", 
                       basename = "ChignikPops24Loci", suffix = "", nreps = 40000, nchains = 5,
                       groupvec = Groupvec7, priorvec = Chignik2016Period6Prior, initmat = Inits, 
                       dir = "BAYES/Control", seeds = WASSIPSockeyeSeeds, thin = c(1,1,100),
                       mixfortran = ChignikMixtureFormat, basefortran = Chignik24BaselineFormat, switches = "F T F T T T F") 
 
 ## Create output directory
-dir.create("BAYES/Output/SCHIG16_6_Jul24")
+dir.create("BAYES/Output/SCHIG16_6_Jul26")
 
 ## Run BAYES, check Raftery-Lewis for each chain, and summarize stats and check for convergence (G-R) in 5th chain
 
 ## This is the summarizing and dputting of estimates
-SCHIG16_6_Jul24_Estimates <- 
-  CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "BAYES/Output", mixvec = "SCHIG16_6_Jul24",
+SCHIG16_6_Jul26_Estimates <- 
+  CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "BAYES/Output", mixvec = "SCHIG16_6_Jul26",
                                prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
-dput(x = SCHIG16_6_Jul24_Estimates, file="Estimates objects/SCHIG16_6_Jul24_Estimates.txt")
+dput(x = SCHIG16_6_Jul26_Estimates, file="Estimates objects/SCHIG16_6_Jul26_Estimates.txt")
 
 # Verify that Gelman-Rubin < 1.2
-SCHIG16_6_Jul24_Estimates[[1]][[1]][, "GR"]
+SCHIG16_6_Jul26_Estimates[[1]][[1]][, "GR"]
 
 # View traceplot
 par(mfrow = c(2, 1), mar = c(1.1, 4.1, 4.1, 2.1))
-plot(SCHIG16_6_Jul24_Estimates$Output$SCHIG16_6_Jul24[seq(from = 1, to = 100000, by = 10), 1], 
+plot(SCHIG16_6_Jul26_Estimates$Output$SCHIG16_6_Jul26[seq(from = 1, to = 100000, by = 10), 1], 
      type = "l", ylim = c(0, 1), ylab = "", main = "Black Lake", xlab = "")
 abline(v = seq(from = 0, to = 10000, by = 2000))
 par(mar = c(5.1, 4.1, 4.1, 2.1))
-plot(SCHIG16_6_Jul24_Estimates$Output$SCHIG16_6_Jul24[seq(from = 1, to = 100000, by = 10), 2], 
+plot(SCHIG16_6_Jul26_Estimates$Output$SCHIG16_6_Jul26[seq(from = 1, to = 100000, by = 10), 2], 
      type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Repetitions", cex.lab = 1.2)
 abline(v = seq(from = 0, to = 10000, by = 2000))
 mtext(text = "Posterior", side = 2, outer = TRUE, line = -1, cex = 1.2)
 
 ## This is the formatting and writing of tables of estimates 
-write.xlsx(x = SCHIG16_6_Jul24_Estimates$Stats[[1]],
-           file="Estimates tables/SCHIG16_6_Jul24_Estimates Table.xlsx")
+write.xlsx(x = SCHIG16_6_Jul26_Estimates$Stats[[1]],
+           file="Estimates tables/SCHIG16_6_Jul26_Estimates Table.xlsx")
 
 ## Write Update Report
 ChignikInseasonReport.f <- dget(file="Objects/ChignikInseasonReport.f.txt")
 
-SCHIG16_6_Jul24_SampleSizes
+SCHIG16_6_Jul26_SampleSizes
 
 
-ChignikInseasonReport.f(NewData = SCHIG16_6_Jul24_Estimates, Period = 6, NumSampled = 190, 
-                        NumAnalyzed = SCHIG16_6_Jul24_SampleSizes[1, "Genotyped"],
-                        Included = SCHIG16_6_Jul24_SampleSizes[1, "Final"], Month = "July", Day = 24)
+ChignikInseasonReport.f(NewData = SCHIG16_6_Jul26_Estimates, Period = 6, NumSampled = 190, 
+                        NumAnalyzed = SCHIG16_6_Jul26_SampleSizes[1, "Genotyped"],
+                        Included = SCHIG16_6_Jul26_SampleSizes[1, "Final"], Month = "July", Day = 26)
+
+
+
+
+NewData = SCHIG16_6_Jul26_Estimates
+Period = 6
+NumSampled = 190
+NumAnalyzed = SCHIG16_6_Jul26_SampleSizes[1, "Genotyped"]
+Included = SCHIG16_6_Jul26_SampleSizes[1, "Final"]
+Month = "July"
+Day = 26
+
+table(SCHIG16_6_Jul26.gcl$attributes$CAPTURE_DATE)
+day.plot <- as.numeric(as.Date(paste("July", 26), format = "%B %d") - as.Date("05/24", format = "%m/%d")) * table(SCHIG16_6_Jul26.gcl$attributes$CAPTURE_DATE)[1] / Included +
+  as.numeric(as.Date(paste("July", 27), format = "%B %d") - as.Date("05/24", format = "%m/%d")) * table(SCHIG16_6_Jul26.gcl$attributes$CAPTURE_DATE)[2] / Included
+
+if(length(NewData) == 2) {
+  NewData <- NewData$Stats
+}
+
+start.wd <- getwd()
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures")
+
+GeneticEstimates2016 <- dget(file = "2016/Objects/GeneticEstimates2016.txt")
+day <- day.plot  # as.numeric(as.Date(paste(Month, Day), format = "%B %d") - as.Date("05/24", format = "%m/%d"))
+GeneticEstimates2016[Period, ] <- c(day, NewData[[1]]["Black Lake", c("mean", "5%", "95%", "sd")]) 
+
+Black2010to2016Means <- dget(file = "2016/Objects/Black2010to2016Means.txt")
+Black2010to2016Uppers <- dget(file = "2016/Objects/Black2010to2016Uppers.txt")
+Black2010to2016Lowers <- dget(file = "2016/Objects/Black2010to2016Lowers.txt")
+
+Year <- rev(rownames(Black2010to2016Means))[1]
+
+## Adding this set of estimates to summary object
+Black2010to2016Means[Year, Period] <- NewData[[1]]["Black Lake", "mean"]
+Black2010to2016Uppers[Year, Period] <- NewData[[1]]["Black Lake", "95%"]
+Black2010to2016Lowers[Year, Period] <- NewData[[1]]["Black Lake", "5%"]
+
+wrapper <- dget(file = "2013/Objects/wrapper.txt")
+
+layoutmatrix2 <- dget(file = "2013/Objects/layoutmatrix2.txt")
+
+layout(layoutmatrix2, widths = c(0.3, 1, 0.3), heights = c(0.75, 0.25, 1, 0.1), respect = FALSE)
+#layout.show(4)
+
+pdf(paste("2016/Updates/2016ChignikInseason", Period, ".pdf", sep = ""), family = "Times", width = 8.5, height = 11, title = paste(Year, " Chignik Inseason", Period, sep = ""))
+layout(layoutmatrix2, widths = c(0.3, 1, 0.3), heights = c(0.6, 0.3, 1, 0.3), respect = FALSE)
+par(family = "serif")
+
+## Plot 1:
+par(mar = c(0, 4, 6, 4))
+plot(1:8, type = "n", axes = FALSE, xlab = "", ylab = "")
+text(x = 4.5, y = 8, labels = "Chignik Sockeye Salmon Fishery", adj = c(0.5, 1), font = 2, cex = 2.75)
+text(x = 4.5, y = 6, labels = paste("Chignik Weir Sockeye Salmon Stock Composition Summary #", Period, sep = ""), adj = c(0.5, 1), font = 2, cex = 2)
+
+## Update these lines
+text(x = 4.5, y = 5, labels = paste(Month, " ", "26-27", ", ", Year, sep = ""), adj = c(0.5, 1), font = 2, cex = 2)
+text(x = 1, y = 2, labels = wrapper(paste("Genetic stock composition estimates for sockeye salmon from the Chignik Weir for ", Month, " ", "26-27", ", ", Year, ". A total of ", NumSampled, " fish were sampled and ", NumAnalyzed, " were analyzed (", Included, " had adequate data to include in the analysis).", sep = ""), width = 100), adj = c(0, 0), cex = 1.5)
+
+## Plot 2:
+par(mar = c(1, 1, 0, 1))
+plot(1:5, type = "n", axes = FALSE, xlab = "", ylab = "")
+arrows(x0 = 0, y0 = 5, x1 = 5, y1 = 5, length = 0)
+text(x = 4.5, y = 4.75, labels = "90%", adj = 0.5, font = 2, cex = 1.5)
+text(x = 3, y = 4.75, labels = "Stock", adj = 0.5, font = 2, cex = 1.5)
+text(x = c(3, 4.5), y = 4, labels = c("Composition", "Confidence Intervals"), adj = 0.5, font = 2, cex = 1.5)
+text(x = 1, y = 3.25, labels = "Reporting Group", adj = 0, font = 2, cex = 1.5)
+text(x = c(3, 4.2, 4.7), y = 3.25, labels = c("Estimate", "Lower", "Upper"), adj = 0.5, font = 2, cex = 1.5)
+arrows(x0 = 0, y0 = 3, x1 = 5, y1 = 3, length = 0)
+text(x = 1, y = c(2.5, 1.75), labels = c("Black (Early Run)", "Chignik (Late Run)"), adj = 0, cex = 1.5)
+
+## Change the estimate object name here:
+text(x = 3, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData[[1]][, "mean"]*100), adj = 0.5, cex = 1.5)
+text(x = 4.2, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData[[1]][, "5%"]*100), adj = 0.5, cex = 1.5)
+text(x = 4.7, y = c(2.5, 1.75), labels = sprintf("%.1f%%", NewData[[1]][, "95%"]*100), adj = 0.5, cex = 1.5)
+
+arrows(x0 = 0, y0 = 1.5, x1 = 5, y1 = 1.5, length = 0)
+
+## Plot 3:
+birch.lwr <- dget(file = "2016/Objects/birch.lwr.txt")
+birch.upr <- dget(file = "2016/Objects/birch.upr.txt")
+
+# The x-axis is Day where 5/25 = 1, thus c(22, 68) is 6/15 - 7/31
+par(mar = c(4.2, 8, 3, 8))
+par(cex = 1)
+par(family = 'serif')
+plot(NA, xlim = c(27, 68), ylim = c(0, 100), bty = "n", axes = FALSE, xlab = "Sample date", ylab = "Black Lake (Early Run) % of sample", cex.lab = 1.5)
+axis(side = 1, at = seq(from = 27, to = 67, by = 5), labels = NA, pos = 0)
+text(x = seq(from = 27, to = 67, by = 5), y = -10, labels = c("20-Jun", "25-Jun", "30-Jun", "5-Jul", "10-Jul", "15-Jul", "20-Jul", "25-Jul", "30-Jul"), srt = 45, xpd = TRUE)
+axis(side = 2, pos = 27, at = seq(from = 0, to = 100, by = 25), labels = NA)
+text(x = 22, y = seq(from = 0, to = 100, by = 25), labels = seq(from = 0, to = 100, by = 25), srt = 0, xpd = TRUE, cex = 1.3)
+polygon(x = c(27:68, 68:27), 
+        y = c(birch.upr[which(names(birch.upr) == "06/20"):which(names(birch.upr) == "07/31")] * 100,
+              rev(birch.lwr[which(names(birch.upr) == "06/20"):which(names(birch.upr) == "07/31")] * 100)), 
+        col = "grey70", border = FALSE)  ## col from grey50 to grey70; THD on 062615
+arrows(x0 = GeneticEstimates2016[, "Day"], y0 = GeneticEstimates2016[, "5%"] * 100, x1 = GeneticEstimates2016[, "Day"], y1 = GeneticEstimates2016[, "95%"] * 100, angle = 90, code = 3, lwd = 3, col = "black", length = 0.1)  ## lwd from 3 to 2; length from 0.15 to 0.1; THD on 062615
+points(x = GeneticEstimates2016[, "Day"], y = GeneticEstimates2016[, "BlackMean"] * 100, col = "black", cex = 2, pch = 21, bg='red')  ## cex from 2 to 1.5; pch from 16 to 21; THD on 062615
+abline(h = 50, lwd = 2)
+segments(x0 = 27, y0 = 0, x1 = 68, y1 = 0)
+segments(x0 = 27, y0 = 0, x1 = 27, y1 = 100)
+legend("topright", legend = c("Average\ntransition\n2010-2015", "2016"), pch = c(22, 21), col = c("grey70", "black"), pt.bg=c("grey70", "red"),cex = 1.2, bty = "n", pt.cex = 2)  ## pt.cex from 3 to 2; pch from 16 to 21; THD on 062615
+
+
+## Change the date here:
+mtext(wrapper(paste("Genetic Stock Composition Estimates of Black (Early Run) Sockeye Salmon Sampled at the Chignik Weir, ", Month, " ", Day, ", ", Year, ".", sep = ""), width = 65), side = 3, line = 1, cex = 1.25, font = 2, adj = 0.5)
+
+## Plot 4:
+par(mar = c(0, 1, 1, 1))
+plot(1:3, type = "n", axes = FALSE, xlab = "", ylab = "")
+text(x = 1.1, y = 1.95, labels = wrapper("This project is funded by the Alaska Sustainable Salmon Fund (http://www.akssf.org/Default.aspx?id=3423). Samples were collected at the Chignik weir and analyzed at the Gene Conservation Laboratory by Commercial Fisheries Division staff. These results are in-season estimates and are therefore preliminary in nature. Final quality control will be conducted post-season."
+                                         , width = 115), adj = c(0, 0), cex = 0.8)
+text(x = 1.1, y = 1.5, labels = wrapper("Page 1 of 1", width = 115), adj = c(0, 0), cex = 0.8)
+text(x = 2.88, y = 1.5, labels = paste("Reported as of: ", format(Sys.time(), "%B %d, %Y"), sep = ''), adj = c(1, 0), cex = 0.8)
+text(x = 2.88, y = 1.2, labels = paste(format(Sys.time(), "%l:%M%p")), adj = c(1, 0), cex = 0.8)
+
+dev.off()
 
 ## save.image("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016/2016ChignikInseason_6.RData")
 
