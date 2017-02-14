@@ -7,8 +7,9 @@ ls()
 rm(list=ls(all=TRUE))
 search()
 getwd()
-setwd("V:/DOC/Power point presentations/Sockeye/Chignik/2015 CRAA")
-setwd("V:/Documents/_DOC_JunkDrawer/Power point presentations/Sockeye/Chignik/2015 CRAA")
+# setwd("V:/DOC/Power point presentations/Sockeye/Chignik/2015 CRAA")
+# setwd("V:/Documents/_DOC_JunkDrawer/Power point presentations/Sockeye/Chignik/2015 CRAA")
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016")
 opar=par()
 
 ## save.image("V:/DOC/Power point presentations/Sockeye/Chignik/2015 CRAA/Chignik inseason summary data.RData")
@@ -717,6 +718,104 @@ segments(x0 = 138, y0 = 0, x1 = 266, y1 = 0, col = "white", lwd = 5, xpd = TRUE)
 
 
 
+
+
+
+
+
+
+
+#### 2016 CRAA Figures ####
+detail2016 <- read.xlsx (file="Chignik inseason summary data.xlsx",sheetName="2016 Escapement Data",stringsAsFactors=FALSE,colClasses=c("Date",rep("numeric",16)))
+str(detail2016)
+
+
+png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2017/2016 Detail Escapement Range Plot.png", width = 8, height = 6.5, units = "in", res = 400)
+png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2017/2016 Detail July 4 Plot.png", width = 8, height = 6.5, units = "in", res = 400)
+png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2017/2016 Detail Genetics Plot.png", width = 8, height = 6.5, units = "in", res = 400)
+png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2017/2016 Detail Genetics Fishing Periods Plot.png", width = 8, height = 6.5, units = "in", res = 400)
+
+par(mar=c(4.6, 4.6, 1.1, 1.1))
+par(family="serif")
+par(bg=rgb(red=31,green=73,blue=125,maxColorValue=255))
+
+plot(0, xlim = c(144, 267), ylim = c(0, 450000), bty="n", axes=FALSE, cex.lab=2, xlab="Date", ylab="Cumulative Escapement (1000's)", col.lab="white", lwd=6)
+axis(side=1,at=c(seq(146,236,by=10),244, 256, 267),labels=rep("",13),cex.axis=1.5,pos=0,lwd=4,col="white",col.axis="white")
+text(x = c(seq(146,236,by=10),244, 256, 267), y = -35000, labels=c("5/25","6/4","6/14","6/24","7/4","7/14","7/24","8/3","8/13","8/23","8/31", "9/12", "9/23"), cex = 1.5, col = "white", srt = 45, xpd = TRUE)
+axis(side=2,at=seq(0,450000,by=50000), labels = seq(0, 450, by = 50), cex.axis=1.3,lwd=4,col="white",col.axis="white")
+
+# Fishery Open Dates
+points(x = detail2016$Day[detail2016$Fishery.Open], y = rep(600000, sum(detail2016$Fishery.Open)), type = "h", col = 1, lwd = 6)
+
+legend("topleft", legend = c("Escapement Goal Range", "Black Lake", "Chignik Lake"), col = c("white", "skyblue", "red"), lwd = 5, bty = "n", text.col = "white", cex = 1.3)
+# Early Escapement Goal Range
+points(x = detail2016$Day[which(!is.na(detail2016$Black.Lower))], y = detail2016$Black.Lower[which(!is.na(detail2016$Black.Lower))], type = "l", col = "white", lwd = 5)
+points(x = detail2016$Day[which(!is.na(detail2016$Black.Upper))], y = detail2016$Black.Upper[which(!is.na(detail2016$Black.Upper))], type = "l", col = "white", lwd = 5)
+# July 4
+points(x = detail2016$Day[which(!is.na(detail2016$CumJuly4Early))], y = detail2016$CumJuly4Early[which(!is.na(detail2016$CumJuly4Early))], type = "l", col = "skyblue", lwd = 5)
+# Genetics
+points(x = detail2016$Day, y = detail2016$CumGeneticsEarly, type = "l", col = "skyblue", lwd = 5)
+
+# Late Escapement Goal Range
+points(x = detail2016$Day[which(!is.na(detail2016$Chignik.Lower))], y = detail2016$Chignik.Lower[which(!is.na(detail2016$Chignik.Lower))], type = "l", col = "white", lwd = 5)
+points(x = detail2016$Day[which(!is.na(detail2016$Chignik.Upper))], y = detail2016$Chignik.Upper[which(!is.na(detail2016$Chignik.Upper))], type = "l", col = "white", lwd = 5)
+# July 4
+points(x = detail2016$Day[which(!is.na(detail2016$CumJuly4Late))], y = detail2016$CumJuly4Late[which(!is.na(detail2016$CumJuly4Late))], type = "l", col = "red", lwd = 5)
+# Genetics
+points(x = detail2016$Day[which(!is.na(detail2016$CumGeneticsLate))], y = detail2016$CumGeneticsLate[which(!is.na(detail2016$CumGeneticsLate))], type = "l", col = "red", lwd = 5)
+# X-axis
+segments(x0 = 138, y0 = 0, x1 = 267, y1 = 0, col = "white", lwd = 5, xpd = TRUE)
+
+dev.off()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## 2016
+# Genetics Escapement
+png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2017/2016 Detail Daily Escapement Plot.png", width = 8, height = 6.5, units = "in", res = 400)
+
+par(mar=c(4.6, 4.6, 1.1, 1.1))
+par(family="serif")
+par(bg=rgb(red=31,green=73,blue=125,maxColorValue=255))
+
+plot(y = detail2016$Escapement[3:101], x = 1:99, type = "h", col = "skyblue", cex = 1.5, xlim = c(0, 102), ylim = c(0, 30000), bty = "n", axes = FALSE, cex.lab = 2, xlab = "Date", ylab = "Daily Escapement", col.lab = "white", lwd = 6)
+rect(xleft = which.min(abs(detail2016$GeneticsPropLate[3:101] - 0.05)), ybottom = 0, xright = which.min(abs(detail2016$GeneticsPropLate[3:101] - 0.95)), ytop = 30000, col = 1)
+# points(x = c(1:99)[detail2016$Fishery.Open[3:101]], y = rep(600000, sum(detail2016$Fishery.Open[3:101])), type = "h", col = 1, lwd = 7)
+segments(x0 = as.Date("2016-07-04") - as.Date("2016-05-24"), x1 = as.Date("2016-07-04") - as.Date("2016-05-24"), 
+         lwd = 6, col = rgb(red=31,green=73,blue=125,maxColorValue=255), y0 = 0, y1 = 30000)
+points(y = detail2016$Escapement[3:101], x = 1:99, type = "h", col = "skyblue", lwd = 6)
+points(y = detail2016$DailyGeneticsLate[3:101], x = 1:99, type = "h", col = "red", lwd = 6)
+axis(side=1,at=c(seq(1,91,by=10),99),labels=c("5/25","6/4","6/14","6/24","7/4","7/14","7/24","8/3","8/13","8/23","8/31"),cex.axis=1.45,pos=0,lwd=4,col="white",col.axis="white")
+axis(side=2,at=seq(0,30000,by=5000),cex.axis=1.45,lwd=4,col="white",col.axis="white")
+abline(h=c(0),lwd=4,col="white")
+legend("topright", bty="n", legend=c("Black Lake", "Chignik Lake"), lwd=4, col=c("skyblue", "red"), text.col="white", cex=1.7)
+
+dev.off()
+
+
+
+
+
+DailyEscp.2015=as.numeric(readClipboard())
+
+plot(y=DailyEscp.2015[1:97], x=1:sum(length(DailyEscp.2012),3), type="h", col="skyblue", cex=1.5, xlim=c(4,sum(length(DailyEscp.2012),3)), ylim=c(0,60000), bty="n", axes=FALSE, cex.lab=2, xlab="Date", ylab="Daily Escapement", col.lab="white", lwd=6)
+rect(xleft=model.fit.2015$Day[which.min(abs(model.fit.2015$BirchWLS.Estimate-0.05))],
+     ybottom=0,xright=model.fit.2015$Day[which.min(abs(model.fit.2015$BirchWLS.Estimate-0.95))],ytop=60000,col=1)
+points(y=DailyEscp.2015[1:97], x=1:sum(length(DailyEscp.2012),3), type="h",col="skyblue",cex=1.5, lwd=6)
+points(y=(DailyEscp.2015*model.fit.2015$BirchWLS.Estimate[1:sum(length(DailyEscp.2015),3)]), x=1:sum(length(DailyEscp.2015),3), type="h",col="red",cex=1.5, lwd=6)
+axis(side=1,at=c(seq(1,91,by=10),99),labels=c("5/25","6/4","6/14","6/24","7/4","7/14","7/24","8/3","8/13","8/23","8/31"),cex.axis=1.5,pos=0,lwd=4,col="white",col.axis="white")
+axis(side=2,at=seq(0,50000,by=5000),cex.axis=1.45,lwd=4,col="white",col.axis="white")
+segments(x0=model.fit.2015$Day[which.min(abs(model.fit.2015$BirchWLS.Estimate-0.05))],
+         x1=model.fit.2015$Day[which.min(abs(model.fit.2015$BirchWLS.Estimate-0.05))],y0=0,y1=60000, col=1, lwd=4)
+segments(x0=model.fit.2015$Day[which.min(abs(model.fit.2015$BirchWLS.Estimate-0.95))],
+         x1=model.fit.2015$Day[which.min(abs(model.fit.2015$BirchWLS.Estimate-0.95))],y0=0,y1=60000, col=1, lwd=4)
+segments(x0=41,x1=41,y0=0,y1=60000, lwd=6, lty=1, col=rgb(red=31,green=73,blue=125,maxColorValue=255))
+abline(h=c(0),lwd=4,col="white")
+legend("topright", bty="n", legend=c("Black Lake", "Chignik Lake"), lwd=4, col=c("skyblue", "red"), text.col="white", cex=1.7)
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # 2015 Start Prior for inseason ####
 mean(c(model.fit.2010[35, "BirchWLS.Estimate"],
