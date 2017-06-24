@@ -1168,6 +1168,7 @@ dput(x = coef.na.all, file = "V:/WORK/Sockeye/Chignik/2015 Chignik Inseason/Obje
 ## With 5/25 and 7/31 anchors
 
 coef.all <- dget(file = "V:/WORK/Sockeye/Chignik/2015 Chignik Inseason/Objects/logistic.coef.all.txt")
+coef.all <- dget(file = "V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2015/Objects/logistic.coef.all.txt")
 coef.na.all <- dget(file = "V:/WORK/Sockeye/Chignik/2015 Chignik Inseason/Objects/logistic.coef.na.all.txt")
 
 coef <- coef.all
@@ -1267,10 +1268,12 @@ yr.weight <- 1 / length(unique(Genetics.Estimates$Year))
 fit.weights <- unlist(by(data = Genetics.Estimates, INDICES = Genetics.Estimates[, "Year"], function(yr) yr.weight * (1 / yr$BlackSD) / sum(yr$BlackSD), simplify = FALSE))
 
 mod <- glm(BlackMean ~ Day, data = Genetics.Estimates, family = binomial(logit), weights = fit.weights)
+mod2 <- glm(BlackMean ~ Day + Year, data = Genetics.Estimates, family = binomial(logit), weights = fit.weights)
+mod3 <- glm(BlackMean ~ Day * Year, data = Genetics.Estimates, family = binomial(logit), weights = fit.weights)
 
 plot(Genetics.Estimates$BlackMean ~ Genetics.Estimates$Day, pch = 16, bty = "n", xlab = "Day", ylab = "Proportion Black Lake", col = as.numeric(Genetics.Estimates$Year), cex = 2, xlim = c(22, 68))
 arrows(x0 = Genetics.Estimates$Day, y0 = Genetics.Estimates$Black5CI, x1 = Genetics.Estimates$Day, y1 = Genetics.Estimates$Black95CI, angle = 90, code = 3)
-legend("bottomleft", legend = 2010:2014, fill = 1:5, bty = "n")
+legend("bottomleft", legend = unique(Genetics.Estimates$Year), fill = seq(unique(Genetics.Estimates$Year)), bty = "n")
 
 # 90% Confidence interval
 newdata <- data.frame("Day" = 22:68)
@@ -1308,12 +1311,15 @@ lines(x = 22:68, y = birch.upr, lwd = 5, lty = 4)
 birch.lwr <- dget(file = "V:/WORK/Sockeye/Chignik/2015 Chignik Inseason/Objects/birch.lwr.txt")
 birch.upr <- dget(file = "V:/WORK/Sockeye/Chignik/2015 Chignik Inseason/Objects/birch.upr.txt")
 
+birch.lwr <- dget(file = "V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016/Objects/birch.lwr.txt")
+birch.upr <- dget(file = "V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2016/Objects/birch.upr.txt")
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Plot everything!!! ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 plot(Genetics.Estimates$BlackMean ~ Genetics.Estimates$Day, pch = 16, bty = "n", xlab = "Day", ylab = "Proportion Black Lake", col = as.numeric(Genetics.Estimates$Year), cex = 2, xlim = c(22, 68))
 
-legend("bottomleft", legend = 2010:2014, fill = 1:5, bty = "n")
+legend("bottomleft", legend = unique(Genetics.Estimates$Year), fill = seq(unique(Genetics.Estimates$Year)), bty = "n")
 # 90% Prediction Interval
 polygon(x = c(22:68, 68:22), y = c(avg.mod.pred[, "Upper 95%"], rev(avg.mod.pred[, "Lower 5%"])), col = "grey80", border = FALSE)
 # Birch's 95% something
