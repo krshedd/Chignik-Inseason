@@ -76,7 +76,7 @@ logistic.kg.f <- function(x, kappa, gamma) {
 }
 
 # Plot all genetic estimates
-plot(Genetics.Estimates$BlackMean ~ Genetics.Estimates$Day, pch = 16, bty = "n", xlab = "Day", ylab = "Proportion Black Lake", col = as.numeric(Genetics.Estimates$Year)-2009, cex = 2, xlim = c(27, 68), axes = FALSE)  # xlim = c(22, 68) for full dataset
+plot(Genetics.Estimates$BlackMean ~ Genetics.Estimates$Day, pch = 16, bty = "n", xlab = "Day", ylab = "Percent Black Lake", col = as.numeric(Genetics.Estimates$Year)-2009, cex = 2, xlim = c(27, 68), axes = FALSE, ylim = c(0, 1))  # xlim = c(22, 68) for full dataset
 axis(side = 1, at = seq(from = 27, by = 5, length.out = 9), labels = format(seq(from = as.Date(x = "20-Jun", format = "%d-%b"), by = 5, length.out = 9), "%d-%b"))
 axis(side = 2, at = seq(from = 0, to = 1, by = 0.1), labels = paste0(seq(from = 0, to = 100, by = 10), "%"))
 legend("bottomleft", legend = unique(Genetics.Estimates$Year), fill = seq(unique(Genetics.Estimates$Year)), bty = "n")
