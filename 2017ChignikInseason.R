@@ -1116,7 +1116,7 @@ SCHIG17.gcl$n
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Sample dates defined inseason.
 
-## Chignik 2017.5 July 17
+## Chignik 2017.6 July 23
 unique(SCHIG17.gcl$attributes$CAPTURE_DATE)
 SCHIG17_6_Jul23IDs <- AttributesToIDs.GCL(silly = "SCHIG17", attribute = "CAPTURE_DATE", 
                                           matching = unique(SCHIG17.gcl$attributes$CAPTURE_DATE)[8])
@@ -1136,8 +1136,8 @@ require('xlsx')
 
 ## Get sample size by locus
 Original_SCHIG17_6_Jul23_SampleSizebyLocus <- SampSizeByLocus.GCL("SCHIG17_6_Jul23", loci24)
-min(Original_SCHIG17_6_Jul23_SampleSizebyLocus) ## Ya 186.
-apply(Original_SCHIG17_6_Jul23_SampleSizebyLocus, 1, min) / SCHIG17_6_Jul23.gcl$n  # 0.98
+min(Original_SCHIG17_6_Jul23_SampleSizebyLocus) ## Ya 183.
+apply(Original_SCHIG17_6_Jul23_SampleSizebyLocus, 1, min) / SCHIG17_6_Jul23.gcl$n  # 0.96
 
 Original_SCHIG17_6_Jul23_PercentbyLocus <- apply(Original_SCHIG17_6_Jul23_SampleSizebyLocus, 1, function(row) {row / max(row)} )
 which(Original_SCHIG17_6_Jul23_PercentbyLocus < 0.8)  # no re-runs!
