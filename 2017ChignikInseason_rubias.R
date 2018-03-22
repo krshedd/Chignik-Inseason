@@ -13,30 +13,30 @@ str(chinook)
 head(chinook_mix[, 1:8])
 str(chinook_mix)
 
-# Load gcl functions
-source("C:/Users/krshedd/Documents/R/Functions.GCL.R")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Convert Baseline to Rubias ####
+#### Convert Baseline to `rubias` ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Baseline 2012/")
 load("Chignik2012SockeyeBaseline.RData")
 
+## Load gcl functions
+source("C:/Users/krshedd/Documents/R/Functions.GCL.R")
+
+## Check objects
 objects(pattern = "\\.gcl")
 Chignik7Populations
-loci24
-table(LocusControl$ploidy[loci24])
+loci22 <- loci24  # aka loci24MSA in the inseason script
+table(LocusControl$ploidy[loci22])
 
 Groupvec7
 Groups
 
 SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97.gcl$scores[1, , ]
 
-require(memisc)
-SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97.df <- to.data.frame(X = SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97.gcl$scores, as.vars = 2)
-str(SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97.df) # not what we need
 
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Create function for rubias baseline
 create_rubias_baseline <- function(sillyvec, loci, group_names, groupvec) {
   silly_base.lst <- lapply(sillyvec, function(silly) {
     my.gcl <- get(paste0(silly, ".gcl"))
@@ -52,9 +52,116 @@ create_rubias_baseline <- function(sillyvec, loci, group_names, groupvec) {
   return(do.call("rbind", silly_base.lst))
 }
 
-chignik_7pops_22loci.rubias_base <- create_rubias_baseline(sillyvec = Chignik7Populations, loci = loci24, group_names = Groups, groupvec = Groupvec7)
+chignik_7pops_22loci.rubias_base <- create_rubias_baseline(sillyvec = Chignik7Populations, loci = loci22, group_names = Groups, groupvec = Groupvec7)
+str(chignik_7pops_22loci.rubias_base)
+
+rm(list = setdiff(ls(), c("chignik_7pops_22loci.rubias_base", "Chignik7Populations", "loci22", "Groupvec7", "Groups")))
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Convert Mixture to Rubias ####
+#### Convert Mixture to `rubias` ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2017/Mixtures/2017/")
+# load("2017ChignikInseason_6.RData")
+
+## Load gcl functions
+source("C:/Users/krshedd/Documents/R/Functions.GCL.R")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Get genotypes from LOKI
+CreateLocusControl.GCL(markersuite = "Sockeye2013Chignik_24SNPs", username = "krshedd", password = password)
+loci24 <- LocusControl$locusnames
+LOKI2R.GCL(sillyvec = "SCHIG17", username = "krshedd", password = password)
+rm(password)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Data QC
+# Get number of individuals per silly before removing missing loci individuals
+Original_SCHIG17_ColSize <- SCHIG17.gcl$n
+
+# Remove individuals with >20% missing data
+SCHIG17_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = "SCHIG17", proportion = 0.8)
+
+# Get number of individuals per silly after removing missing loci individuals
+ColSize_SCHIG17_PostMissLoci <- SCHIG17.gcl$n
+
+SCHIG17_SampleSizes <- matrix(data = NA, nrow = 1, ncol = 4, 
+                              dimnames = list("SCHIG17", c("Genotyped", "Missing", "Duplicate", "Final")))
+SCHIG17_SampleSizes[, "Genotyped"] <- Original_SCHIG17_ColSize
+SCHIG17_SampleSizes[, "Missing"] <- Original_SCHIG17_ColSize - ColSize_SCHIG17_PostMissLoci
+
+# Check within collections for duplicate individuals.
+SCHIG17_DuplicateCheck95MinProportion <- 
+  CheckDupWithinSilly.GCL(sillyvec = "SCHIG17", loci = loci24, quantile = NULL, minproportion = 0.95)
+
+# Remove duplicate individuals
+SCHIG17_RemovedDups <- RemoveDups.GCL(SCHIG17_DuplicateCheck95MinProportion)
+
+# Get number of individuals per silly after removing duplicate individuals
+ColSize_SCHIG17_PostDuplicate <- SCHIG17.gcl$n
+
+SCHIG17_SampleSizes[, "Duplicate"] <- ColSize_SCHIG17_PostMissLoci-ColSize_SCHIG17_PostDuplicate
+SCHIG17_SampleSizes[, "Final"] <- ColSize_SCHIG17_PostDuplicate
+SCHIG17_SampleSizes
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Define Strata
+PoolCollectionsByDateDF <- function(silly, date.df, loci) {
+  sapply(silly, function(mix) {
+    mix.dates <- unique(as.Date(get(paste0(mix, ".gcl"))$attributes$CAPTURE_DATE))
+    by(data = date.df, INDICES = date.df$Strata, function(x) {
+      IDs <- AttributesToIDs.GCL(silly = mix, attribute = "CAPTURE_DATE", matching = mix.dates[mix.dates >= x$Begin & mix.dates <= x$End])
+      IDs <- list(na.omit(IDs))
+      names(IDs) <- mix
+      PoolCollections.GCL(collections = mix, loci = loci, IDs = IDs, newname = paste(mix, as.character(x$Strata), sep = "_"))
+      list("First Last Fish" = range(as.numeric(unlist(IDs))), "n" = get(paste0(mix, "_", as.character(x$Strata), ".gcl"))$n)
+    } )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+}
+
+Chignik2017_date.df <- data.frame("Strata" = factor(paste0("Strata", 1:6)),
+                                  "Begin" = as.Date(c("2017-06-25", "2017-07-01", "2017-07-07", "2017-07-13", "2017-07-18", "2017-07-23")),
+                                  "End" = as.Date(c("2017-06-26", "2017-07-01", "2017-07-08", "2017-07-13", "2017-07-18", "2017-07-23")))
+str(Chignik2017_date.df)
+
+PoolCollectionsByDateDF(silly = "SCHIG17", date.df = Chignik2017_date.df, loci = loci24)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Combine loci
+CombineLoci.GCL(sillyvec = paste0("SCHIG17_Strata", 1:6), markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = paste0("SCHIG17_Strata", 1:6), markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Create function for rubias mixture
+# ASSUMES each silly is its own mixture
+create_rubias_mixture <- function(sillyvec, loci) {
+  silly_base.lst <- lapply(sillyvec, function(silly) {
+    my.gcl <- get(paste0(silly, ".gcl"))
+    scores.mat <- t(apply(my.gcl$scores[, loci, ], 1, function(ind) {c(t(ind))} ))
+    colnames(scores.mat) <- as.vector(sapply(loci, function(locus) {c(locus, paste(locus, 1, sep = "."))} ))
+    scores.df <- data.frame(scores.mat, stringsAsFactors = FALSE)
+    scores.df$sample_type <- "mixture"
+    scores.df$repunit <- NA
+    mode(scores.df$repunit) <- "character"
+    scores.df$collection <- silly
+    scores.df$indiv <- as.character(my.gcl$attributes$SillySource)
+    silly_base.df <- scores.df[, c("sample_type", "repunit", "collection", "indiv", gsub(pattern = "-", replacement = ".", x = colnames(scores.mat)))] } #silly
+  )
+  return(do.call("rbind", silly_base.lst))
+}
+
+chignik_2017.rubias_mix <- create_rubias_mixture(sillyvec = paste0("SCHIG17_Strata", 1:6), loci = loci22)
+str(chignik_2017.rubias_mix)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Run `rubias` ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+require(rubias)
+chignik_2017_mix_est <- infer_mixture(reference = chignik_7pops_22loci.rubias_base, 
+                                      mixture = chignik_2017.rubias_mix, 
+                                      gen_start_col = 5)
