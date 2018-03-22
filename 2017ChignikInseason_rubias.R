@@ -162,6 +162,15 @@ str(chignik_2017.rubias_mix)
 #### Run `rubias` ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 require(rubias)
+require(tidyverse)
+
 chignik_2017_mix_est <- infer_mixture(reference = chignik_7pops_22loci.rubias_base, 
                                       mixture = chignik_2017.rubias_mix, 
                                       gen_start_col = 5)
+str(chignik_2017_mix_est, max.level = 2)
+
+rep_mix_ests <- chignik_2017_mix_est$mixing_proportions %>%
+  group_by(mixture_collection, repunit) %>%
+  summarise(repprop = sum(pi))  # adding mixing proportions over collections in the repunit
+
+spread(data = rep_mix_ests, key = repunit, value = repprop)
