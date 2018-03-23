@@ -54,6 +54,7 @@ create_rubias_baseline <- function(sillyvec, loci, group_names, groupvec) {
 
 chignik_7pops_22loci.rubias_base <- create_rubias_baseline(sillyvec = Chignik7Populations, loci = loci22, group_names = Groups, groupvec = Groupvec7)
 str(chignik_7pops_22loci.rubias_base)
+dput(x = chignik_7pops_22loci.rubias_base, file = "Objects/chignik_7pops_22loci.rubias_base.txt")
 
 rm(list = setdiff(ls(), c("chignik_7pops_22loci.rubias_base", "Chignik7Populations", "loci22", "Groupvec7", "Groups")))
 
@@ -139,7 +140,7 @@ CombineLoci.GCL(sillyvec = paste0("SCHIG17_Strata", 1:6), markerset = c("One_GPD
 ## Create function for rubias mixture
 # ASSUMES each silly is its own mixture
 create_rubias_mixture <- function(sillyvec, loci) {
-  silly_base.lst <- lapply(sillyvec, function(silly) {
+  silly_mix.lst <- lapply(sillyvec, function(silly) {
     my.gcl <- get(paste0(silly, ".gcl"))
     scores.mat <- t(apply(my.gcl$scores[, loci, ], 1, function(ind) {c(t(ind))} ))
     colnames(scores.mat) <- as.vector(sapply(loci, function(locus) {c(locus, paste(locus, 1, sep = "."))} ))
@@ -149,15 +150,17 @@ create_rubias_mixture <- function(sillyvec, loci) {
     mode(scores.df$repunit) <- "character"
     scores.df$collection <- silly
     scores.df$indiv <- as.character(my.gcl$attributes$SillySource)
-    silly_base.df <- scores.df[, c("sample_type", "repunit", "collection", "indiv", gsub(pattern = "-", replacement = ".", x = colnames(scores.mat)))] } #silly
+    silly_mix.df <- scores.df[, c("sample_type", "repunit", "collection", "indiv", gsub(pattern = "-", replacement = ".", x = colnames(scores.mat)))] } #silly
   )
-  return(do.call("rbind", silly_base.lst))
+  return(do.call("rbind", silly_mix.lst))
 }
 
 chignik_2017.rubias_mix <- create_rubias_mixture(sillyvec = paste0("SCHIG17_Strata", 1:6), loci = loci22)
 str(chignik_2017.rubias_mix)
+dput(x = chignik_2017.rubias_mix, file = "Objects/chignik_2017.rubias_mix.txt")
 
-
+rm(list = setdiff(ls(), c("chignik_7pops_22loci.rubias_base", "Chignik7Populations", "loci22", "Groupvec7", "Groups", "SCHIG17_Strata1.gcl", "SCHIG17_Strata2.gcl", "SCHIG17_Strata3.gcl", "SCHIG17_Strata4.gcl", "SCHIG17_Strata5.gcl", "SCHIG17_Strata6.gcl", "SCHIG17.gcl", "Chignik2017_date.df")))
+# save.image("2017ChignikInseason_rubias.RData")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Run `rubias` ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,9 +171,71 @@ chignik_2017_mix_est <- infer_mixture(reference = chignik_7pops_22loci.rubias_ba
                                       mixture = chignik_2017.rubias_mix, 
                                       gen_start_col = 5)
 str(chignik_2017_mix_est, max.level = 2)
+dput(x = chignik_2017_mix_est, file = "Objects/chignik_2017_mix_est.txt")
 
 rep_mix_ests <- chignik_2017_mix_est$mixing_proportions %>%
   group_by(mixture_collection, repunit) %>%
   summarise(repprop = sum(pi))  # adding mixing proportions over collections in the repunit
 
 spread(data = rep_mix_ests, key = repunit, value = repprop)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Baseline testing with `rubias` ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Self assignment
+chignik_7pops_22loci.rubias_base_sa <- self_assign(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5)
+str(chignik_7pops_22loci.rubias_base_sa, max.level = 1)
+
+sa_to_repu <- chignik_7pops_22loci.rubias_base_sa %>% 
+  group_by(indiv, collection, repunit, inferred_repunit) %>%
+  summarise(repu_scaled_like = sum(scaled_likelihood))
+
+str(sa_to_repu)
+sa_to_repu %>% 
+  group_by(repunit, inferred_repunit) %>% 
+  summarise("mean_repu_scaled_like" = mean(repu_scaled_like)) %>% 
+  spread(repunit, mean_repu_scaled_like)
+
+## Leave-one-out
+chignik_7pops_22loci.rubias_base_loo <- assess_reference_loo(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5, reps = 50, mixsize = 200)
+chignik_7pops_22loci.rubias_base_loo
+
+tmp <- chignik_7pops_22loci.rubias_base_loo %>% 
+  group_by(iter, repunit) %>% 
+  summarise(true_repprop = sum(true_pi), repprop_posterior_mean = sum(post_mean_pi), repu_n = sum(n)) %>% 
+  mutate(repu_n_prop = repu_n / sum(repu_n))
+tmp
+
+# Plot
+ggplot(tmp, aes(x = true_repprop, y = repprop_posterior_mean, colour = repunit)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  facet_wrap(~ repunit)
+
+ggplot(tmp, aes(x = repu_n_prop, y = repprop_posterior_mean, colour = repunit)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  facet_wrap(~ repunit)
+
+
+## MC
+chignik_7pops_22loci.rubias_base_mc <- assess_reference_mc(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5, reps = 50, mixsize = 200)
+chignik_7pops_22loci.rubias_base_mc
+
+tmp <- chignik_7pops_22loci.rubias_base_mc %>% 
+  group_by(iter, repunit) %>% 
+  summarise(true_repprop = sum(omega), repprop_posterior_mean = sum(post_mean), repu_n = sum(n)) %>% 
+  mutate(repu_n_prop = repu_n / sum(repu_n))
+tmp
+
+# Plot
+ggplot(tmp, aes(x = true_repprop, y = repprop_posterior_mean, colour = repunit)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  facet_wrap(~ repunit)
+
+ggplot(tmp, aes(x = repu_n_prop, y = repprop_posterior_mean, colour = repunit)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  facet_wrap(~ repunit)
