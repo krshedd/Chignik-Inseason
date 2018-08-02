@@ -37,7 +37,7 @@ SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97.gcl$scores[1, , ]
 chignik_anderson <- Anderson_etal.GCL(popvec = Chignik7Populations, loci = loci22, groups = Groupvec7, group_names = Groups)  # doesn't work for combined markers
 chignik_leaveoneout <- LeaveOneOutDist.GCL(sillyvec = Chignik7Populations, loci = loci22, groupvec = Groupvec7)
 chignik_confusion <- ConfusionMatrices.GCL(LeaveOneOutDist = chignik_leaveoneout, groupnames = Groups, groupvec = Groupvec7, sillyvec = Chignik7Populations)
-
+chignik_confusion$GroupByGroup
 
 loci19 <- loci22[-c(4, 6, 8)]
 chignik_anderson_loci19 <- Anderson_etal.GCL(popvec = Chignik7Populations, loci = loci19, groups = Groupvec7, group_names = Groups)  # doesn't work for combined markers
@@ -209,6 +209,18 @@ spread(data = rep_mix_ests, key = repunit, value = repprop)
 chignik_7pops_22loci.rubias_base_sa <- self_assign(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5)
 str(chignik_7pops_22loci.rubias_base_sa, max.level = 1)
 
+black2black_sa.df <- chignik_7pops_22loci.rubias_base_sa %>% 
+  filter(collection == "SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97") %>% 
+  filter(inferred_collection == "SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97")
+plot(x = black2black_sa.df$scaled_likelihood,
+     y = chignik_leaveoneout[[2]]$SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97$SBROAD97.SBSPR97.SBOUL97.SFAN97.SALEC97)
+
+chignik2chignik_sa.df <- chignik_7pops_22loci.rubias_base_sa %>% 
+  filter(collection == "SCHIA08.SCHIA97E.SCHIA97M") %>% 
+  filter(inferred_collection == "SCHIA08.SCHIA97E.SCHIA97M")
+plot(x = chignik2chignik_sa.df$scaled_likelihood,
+     y = chignik_leaveoneout[[2]]$SCHIA08.SCHIA97E.SCHIA97M$SCHIA08.SCHIA97E.SCHIA97M)
+
 sa_to_repu <- chignik_7pops_22loci.rubias_base_sa %>% 
   group_by(indiv, collection, repunit, inferred_repunit) %>%
   summarise(repu_scaled_like = sum(scaled_likelihood))
@@ -220,7 +232,7 @@ sa_to_repu %>%
   spread(inferred_repunit, mean_repu_scaled_like)
 
 ## Leave-one-out
-chignik_7pops_22loci.rubias_base_loo <- assess_reference_loo(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5, reps = 50, mixsize = 200)
+chignik_7pops_22loci.rubias_base_loo <- assess_reference_loo(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5, reps = 200, mixsize = 200)
 chignik_7pops_22loci.rubias_base_loo
 
 tmp_22_loo <- chignik_7pops_22loci.rubias_base_loo %>% 
@@ -240,6 +252,10 @@ ggplot(tmp_22_loo, aes(x = repu_n_prop, y = repprop_posterior_mean, colour = rep
   geom_abline(intercept = 0, slope = 1) +
   facet_wrap(~ repunit)
 
+tmp_22_loo %>% 
+  filter(repunit == "BlackLake") %>% 
+  mutate("resid" = repu_n_prop - repprop_posterior_mean) %>% 
+  ggplot(aes(x = resid)) + geom_histogram()
 
 ## MC
 chignik_7pops_22loci.rubias_base_mc <- assess_reference_mc(reference = chignik_7pops_22loci.rubias_base, gen_start_col = 5, reps = 50, mixsize = 200)
