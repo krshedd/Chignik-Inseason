@@ -708,4 +708,31 @@ write_csv(x = chignik_2018_dates.rubias, path = "Estimates tables/Chignik 2018 r
 write_csv(x = chignik_2018_dates.bayes, path = "Estimates tables/Chignik 2018 BAYES Estimates.csv")
 
 
-save.image("2018ChignikInseason_rubias.RData")
+# save.image("2018ChignikInseason_rubias.RData")
+
+## Read in GSI logistic transition curve for 2018
+mod_2018 <- read_csv(file = "2018 Final Model draft.csv") %>% 
+  mutate(date = as.Date(date, format = "%B-%d")) %>% 
+  select(date, chignik_prop)
+
+mod_final <- mod_avg %>% 
+  left_join(mod_2018, by = "date")
+
+# Plot GSI with avg transition
+mod_final %>% 
+  filter(date > "2018-06-15") %>% 
+  mutate(black_early_prop = 1 - chignik_late_prop) %>% 
+  mutate(black_prop = 1 - chignik_prop) %>% 
+  ggplot(aes(x = date, y = black_early_prop * 100)) +
+  geom_line(lwd = 3) +
+  geom_line(aes(x = date, y = black_prop * 100), lwd = 3, colour = "grey50") +
+  geom_point(data = filter(chignik_2018_dates.rubias, repunit == "Black Lake"), aes(x = date, y = mean * 100), colour = "red", cex = 5) +
+  geom_errorbar(data = filter(chignik_2018_dates.rubias, repunit == "Black Lake"), aes(x = date, y = mean * 100, ymin = `5%` * 100, ymax = `95%` * 100), colour = "red", lwd = 1.5, width = 3) +
+  geom_point(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100), colour = "blue", cex = 5) +
+  geom_errorbar(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100, ymin = `5%` * 100, ymax = `95%` * 100), colour = "blue", lwd = 1.5, width = 3) +
+  xlab("Sample Date") +
+  ylab("Black Lake (Early Run) % of Sample") +
+  annotate("text", x = as.Date("2018-06-25"), y = c(50, 40), label = c("BAYES", "rubias"), colour = c("blue", "red"), cex = 8) +
+  ggtitle("2018 Chignik Sockeye GSI with expected transition")
+
+# save.image("2018ChignikInseason_rubias.RData")
