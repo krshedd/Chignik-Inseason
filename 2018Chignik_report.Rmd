@@ -63,17 +63,19 @@ chignik_2018_dates.bayes %>%
 ```
 
 ```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
-mod_avg %>% 
+mod_final %>% 
   filter(date > "2018-06-15") %>% 
   mutate(black_early_prop = 1 - chignik_late_prop) %>% 
-  ggplot(aes(x = date, y = black_early_prop * 100)) +
+  mutate(black_prop = 1 - chignik_prop) %>% 
+ggplot(aes(x = date, y = black_early_prop * 100)) +
   geom_line(lwd = 3) +
-    geom_point(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100), colour = "red", cex = 5) +
+  geom_line(aes(x = date, y = black_prop * 100), lwd = 3, colour = "grey50") +
+geom_point(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100), colour = "red", cex = 5) +
   geom_errorbar(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100, ymin = `5%` * 100, ymax = `95%` * 100), colour = "red", lwd = 1.5, width = 3) +
   scale_x_date(date_labels = "%B %d", date_breaks = "1 week") +
   xlab("Sample Date") +
   ylab("Black Lake (Early Run) % of Sample") +
-  ggtitle("2018 Chignik Sockeye GSI\nwith Expected Transition")+
+  ggtitle("2018 Chignik Sockeye GSI\nwith Expected Transition and 2018 Transition")+
   theme_classic(base_size = 18) +
   theme(plot.title = element_text(hjust = 0.5),
         axis.text.x = element_text(angle = 45, hjust = 1),
