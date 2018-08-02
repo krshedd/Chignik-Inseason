@@ -1,0 +1,81 @@
+---
+title: "Chignik Weir"
+subtitle: "Chignik Sockeye Salmon Stock Composition Summary"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+geometry: margin=0.5in
+date: "`r paste('Reported on:', format(Sys.Date(), format = '%B %d, %Y'), 'at', format(Sys.time(), format = '%I:%M %p'))`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(kableExtra)
+library(ggpubr)
+load("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2018/Mixtures/2018/2018ChignikInseason_rubias.RData")
+# 
+# date_range.df <- openings_strata.df %>% 
+#   filter(year == 2018, stat_week == sw)
+# strata_date_range <- ifelse(month(date_range.df$begin_date) == month(date_range.df$end_date),
+#                             paste(format(date_range.df$begin_date, format = "%B %d"), 
+#                                   format(date_range.df$end_date, format = "%d, %Y"), sep = "-"),
+#                             paste(format(date_range.df$begin_date, format = "%B %d"), 
+#                                   format(date_range.df$end_date, format = "%B %d, %Y"), sep = "-"))
+# 
+# n_samp <- ASL.df %>% 
+#   filter(Year == 2018, `Stat Week` == sw) %>% 
+#   n_distinct()
+# n_geno <- get(paste0("sillys_strata_2018_SW", sw, "_n"))[sillys_strata, "Genotyped"]
+# n_final <- get(paste0("sillys_strata_2018_SW", sw, "_n"))[sillys_strata, "Final"]
+```
+
+# 2018 GSI Summary
+
+Summary of genetic stock composition point estimates (%) for each of the six sampling strata.
+
+```{r summary_table, warning=FALSE, message=FALSE}
+sillys_strata_2018_n.df <- as.tibble(cbind(sillys_strata_2018_n, "silly_strata" = rownames(sillys_strata_2018_n))) %>% 
+  rename(n = Final) %>% 
+  select(silly_strata, n) %>% 
+  mutate(n = as.integer(n))
+
+options(knitr.kable.NA = '')
+chignik_2018_dates.bayes %>% 
+  unite(col = silly_strata, c("silly", "strata"), sep = "_", remove = FALSE) %>% 
+  left_join(sillys_strata_2018_n.df) %>% 
+  mutate(dates = ifelse(begin_date == end_date, 
+                        format(begin_date, format = "%B %d"), 
+                        paste(format(begin_date, format = "%B %d"), format(end_date, format = "%d"), sep = "-"))) %>% 
+  select(strata, repunit, dates, n, mean) %>% 
+  mutate(mean = mean * 100) %>% 
+  spread(repunit, mean) %>% 
+  kable(digits = 1, format = "latex", booktabs = TRUE, escape = FALSE, linesep = "",
+        col.names = c(linebreak(x = c("Strata", "Sample Dates"), align = "l"),
+                      linebreak(x = c("Sample Size", "Black Lake", "Chignik Lake"), align = "r"))) %>% 
+  kable_styling(position = "center")
+```
+
+```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
+mod_avg %>% 
+  filter(date > "2018-06-15") %>% 
+  mutate(black_early_prop = 1 - chignik_late_prop) %>% 
+  ggplot(aes(x = date, y = black_early_prop * 100)) +
+  geom_line(lwd = 3) +
+    geom_point(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100), colour = "red", cex = 5) +
+  geom_errorbar(data = filter(chignik_2018_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100, ymin = `5%` * 100, ymax = `95%` * 100), colour = "red", lwd = 1.5, width = 3) +
+  scale_x_date(date_labels = "%B %d", date_breaks = "1 week") +
+  xlab("Sample Date") +
+  ylab("Black Lake (Early Run) % of Sample") +
+  ggtitle("2018 Chignik Sockeye GSI\nwith Expected Transition")+
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
+```
