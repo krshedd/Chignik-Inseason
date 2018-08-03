@@ -652,7 +652,7 @@ save_objects(objects = "chignik_2018_dates.bayes", path = "Estimates objects/")
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Average model ####
+#### Average model and plotting ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Read in average transition curve for 2018
 mod_avg <- read_csv(file = "2018 average GSI model.csv") %>% 
