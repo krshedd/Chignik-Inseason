@@ -11,7 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 rm(list = ls())
 setwd("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2018/Mixtures/2018/")
-load("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2018/Baseline 2012/Chignik2012SockeyeBaseline.RData")
+load("V:/Analysis/4_Westward/Sockeye/Chignik Inseason 2012-2018/Baseline/2012/Chignik2012SockeyeBaseline.RData")
 rm(LocusControl)
 
 source("C:/Users/krshedd//R/Functions.GCL.R")
