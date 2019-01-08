@@ -736,3 +736,10 @@ mod_final %>%
   ggtitle("2018 Chignik Sockeye GSI with expected transition")
 
 # save.image("2018ChignikInseason_rubias.RData")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### August 2018 Sample ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Per Birch Foster on 2019/01/07, set the prior to 91-92% late-run
+# This comes from the 2018 logistical model (minus the 8/1 anchor)
