@@ -717,6 +717,135 @@ points(x = detail2015$Day[which(!is.na(detail2015$CumGeneticsLate))], y = detail
 segments(x0 = 138, y0 = 0, x1 = 266, y1 = 0, col = "white", lwd = 5, xpd = TRUE)
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### 2018 CRAA Figures for Feb 2019 Meeting####
+# Tue Feb 26 10:33:25 2019
+date()
+setwd("../2018")
+library(tidyverse)
+library(lubridate)
+
+estimates_2018 <- read_csv("Estimates tables/Chignik 2018 BAYES Estimates.csv")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plot of just the GSI strata
+estimates_2018 %>% 
+  filter(repunit == "Black Lake") %>% 
+  # filter(strata <= 6) %>%
+  ggplot(aes(x = avg_date, y = mean)) +
+  geom_errorbar(aes(ymin = `5%`, ymax = `95%`), width = 3, size = 1.5, colour = "white") +
+  geom_point(size = 5, colour = "white") +
+  # geom_hline(yintercept = c(0, 1), size = 1.5) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = yday(c("2018-05-25", "2018-08-10")),
+                     breaks = seq(from = yday("2018-05-25"), by = 11, length = 8), 
+                     labels = format(seq(from = as.Date("2018-05-25"), by = 11, length = 8), format = "%m/%d")) +
+  ylab("Proportion Black Lake") +
+  xlab("Date") +
+  theme_classic() +
+  theme(text = element_text(size = 20, colour = "white"),
+        axis.line = element_line(colour = "white", size = 2),
+        axis.text = element_text(colour = "white"), 
+        axis.ticks = element_line(colour = "white", size = 2),
+        axis.ticks.length = unit(x = 10, units = "points"), 
+        plot.margin = margin(10.5, 20.5, 5.5, 5.5, "points"),
+        plot.background = element_rect(fill = rgb(red = 31, green = 73, blue = 125, maxColorValue = 255), 
+                                       colour = rgb(red = 31, green = 73, blue = 125, maxColorValue = 255)),
+        panel.background = element_rect(fill = rgb(red = 31, green = 73, blue = 125, maxColorValue = 255)))
+
+ggsave(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2019/Figures/chignik_stock_comp_2019.png", 
+       width = 7, height = 6.5, units = "in", dpi = 300)
+
+ggsave(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2019/Figures/chignik_stock_comp_2019_august.png", 
+       width = 7, height = 6.5, units = "in", dpi = 300)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create function to calculate proprtions based on Birch's logistic function coefficients (kappa, gamma method vs. a, b)
+# NOTE: kappa = b, gamma = -a/b
+logistic <- function(x, kappa, gamma) {
+  p = 1 / (1 + exp(-kappa * (x - gamma)))
+  return(p)
+}
+
+birch_wls_logistic_coef <- read_csv("logistic_coefficients.csv")
+
+birch_wls_logistic_coef <- birch_wls_logistic_coef %>% 
+  mutate(color = c(colorRampPalette(c("skyblue", "black"))(8), "black")) %>% 
+  mutate(lty = c(1:8, 1))
+
+
+# plot points with curve
+logistic_2019 <- tibble(dates = seq(yday("2018-05-25"), yday("2018-08-10")), 
+                        black_comp = 1 - logistic(x = 1:78, 
+                                                  kappa = birch_wls_logistic_coef[9, "kappa"] %>% pull(), 
+                                                  gamma = birch_wls_logistic_coef[9, "gamma"] %>% pull()))
+
+estimates_2018 %>% 
+  filter(repunit == "Black Lake") %>% 
+  # filter(strata <= 6) %>%
+  ggplot(aes(x = avg_date, y = mean)) +
+  geom_errorbar(aes(ymin = `5%`, ymax = `95%`), width = 3, size = 1.5, colour = "white") +
+  geom_point(size = 5, colour = "white") +
+  geom_line(data = logistic_2019, aes(x = dates, y = black_comp), colour = "white", size = 2) +
+  # geom_hline(yintercept = c(0, 1), size = 1.5) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = yday(c("2018-05-25", "2018-08-10")),
+                     breaks = seq(from = yday("2018-05-25"), by = 11, length = 8), 
+                     labels = format(seq(from = as.Date("2018-05-25"), by = 11, length = 8), format = "%m/%d")) +
+  ylab("Proportion Black Lake") +
+  xlab("Date") +
+  theme_classic() +
+  theme(text = element_text(size = 20, colour = "white"),
+        axis.line = element_line(colour = "white", size = 2),
+        axis.text = element_text(colour = "white"), 
+        axis.ticks = element_line(colour = "white", size = 2),
+        axis.ticks.length = unit(x = 10, units = "points"), 
+        plot.margin = margin(10.5, 20.5, 5.5, 5.5, "points"),
+        plot.background = element_rect(fill = rgb(red = 31, green = 73, blue = 125, maxColorValue = 255), 
+                                       colour = rgb(red = 31, green = 73, blue = 125, maxColorValue = 255)),
+        panel.background = element_rect(fill = rgb(red = 31, green = 73, blue = 125, maxColorValue = 255)))
+
+ggsave(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2019/Figures/chignik_stock_comp_2019_august_logistic.png", 
+       width = 7, height = 6.5, units = "in", dpi = 300)
+
+
+# require(xlsx)
+# Birch.WLS.RegCoeffs=read.xlsx(file="Chignik inseason summary data.xlsx",sheetName="Birch.WLS.RegCoeffs",stringsAsFactors=FALSE,colClasses=c(rep("numeric",3)))
+# Birch.WLS.RegCoeffs$col <- c(colorRampPalette(c("black", "skyblue"))(7), "black")
+# Birch.WLS.RegCoeffs$lty <- c(1:7, 1)
+# yr2017 <- as.numeric(readClipboard())  # 5/25-8/8 from Chignik escapement 2017.xlsx
+
+# plot all curves
+png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2019/Figures/logistic_regression_summary.png", width = 7, height = 6.5, units = "in", res = 400)
+
+par(mar=c(3.1, 4.6, 1.1, 1.1))
+par(family="sans")
+par(bg=rgb(red=31,green=73,blue=125,maxColorValue=255))
+
+plot(-5,cex=1.5,xlim=c(1,78),ylim=c(0,1),bty="n",axes=FALSE,cex.lab=2,xlab="",ylab="",col.lab=1)
+mtext(text = "Date", side = 1, line = 2, cex = 2, col = "white")
+mtext(text = "Proportion Black Lake", side = 2, line = 3, cex = 2, col = "white")
+rect(xleft=29,ybottom=0,xright=69,ytop=1,col="white")
+axis(side=1,at=seq(1,78,by=11),labels=format(seq(from = as.Date("2018-05-25"), by = 11, length = 8), format = "%m/%d"),cex.axis=1.3,pos=0,lwd=4,col="white",col.axis="white")
+axis(side=2,cex.axis=1.5,lwd=4,col="white",col.axis="white")
+apply(birch_wls_logistic_coef, 1, function(yr) {
+  lines(x = 1:78, y = 1-logistic(x = 1:78, kappa = as.numeric(yr[2]), gamma = as.numeric(yr[3])), type = "l", lwd = 3, col = yr[4], lty = as.numeric(yr[5]))
+} )
+yr2 <- birch_wls_logistic_coef[9, ]
+lines(x = 1:78, y = 1-logistic(x = 1:78, kappa = as.numeric(yr2[2]), gamma = as.numeric(yr2[3])), type = "l", lwd = 10, col = 1, lty = 1)  # y = 1-logistic(x = 1:78, kappa = as.numeric(yr2[2]), gamma = as.numeric(yr2[3]))
+
+abline(h=c(0),lwd=4,col="white")
+legend(x=0,y=1,bty="n",legend=2010:2018,lwd=c(rep(4, 8), 10),col=birch_wls_logistic_coef$color, lty = birch_wls_logistic_coef$lty,cex=1.5,text.col="white")
+
+dev.off()
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### 2017 CRAA Figures for Feb 2018 Meeting####
