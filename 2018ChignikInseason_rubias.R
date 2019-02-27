@@ -743,3 +743,461 @@ mod_final %>%
 
 # Per Birch Foster on 2019/01/07, set the prior to 91-92% late-run
 # This comes from the 2018 logistical model (minus the 8/1 anchor)
+
+# Run with 2012 Baseline same as always (7 pops, 24 loci, no RAD loci)
+
+library(tidyverse)
+library(lubridate)
+library(rubias)
+library(ggthemes)
+library(gridExtra)
+library(ggpubr)
+
+source("~/../R/Functions.GCL.R")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Load objects and get genotypes ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+load_objects("../2018/Objects/")
+
+sillys <- paste0("SCHIG18")
+LOKI2R.GCL(sillyvec = sillys, username = "krshedd", password = .password)
+save_sillys(sillyvec = sillys, path = "../2018/Raw genotypes")
+# load_sillys(path = "Raw genotypes", sillyvec = sillys)
+
+sapply(sillys, function(silly) {get(paste0(silly, ".gcl"))$n} )  # 1140/yr
+sapply(sillys, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )  # 2016 is missing Capture Date
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Stratify mixtures
+#~~~~~~~~~~~~~~~~~~
+# Function to pool by sample date
+PoolCollectionsByDateDF <- function(silly, date.df, loci) {
+  sapply(silly, function(mix) {
+    mix.dates <- unique(as.Date(get(paste(mix, ".gcl", sep = ''))$attributes$CAPTURE_DATE))
+    by(data = date.df, INDICES = date.df$strata, function(x) {
+      IDs <- AttributesToIDs.GCL(silly = mix, attribute = "CAPTURE_DATE", matching = mix.dates[mix.dates >= x$begin_date & mix.dates <= x$end_date])
+      IDs <- list(na.omit(IDs))
+      names(IDs) <- mix
+      PoolCollections.GCL(collections = mix, loci = loci, IDs = IDs, newname = paste(mix, as.character(x$strata), sep = "_"))
+      list("First Last Fish" = range(as.numeric(unlist(IDs))), "n" = get(paste(mix, "_", as.character(x$strata), ".gcl", sep = ''))$n)
+    } )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+}
+
+date_2018.df <- tibble(strata = 1:7, 
+                       begin_date = as.Date(x = c("2018-06-26", "2018-07-02", "2018-07-08", "2018-07-17", "2018-07-22", "2018-07-27", "2018-08-08")), 
+                       end_date = as.Date(x = c("2018-06-27", "2018-07-02", "2018-07-12", "2018-07-17", "2018-07-23", "2018-07-27", "2018-08-09")))
+
+PoolCollectionsByDateDF(silly = "SCHIG18", date.df = date_2018.df, loci = loci24)
+
+sillys_strata_2018 <- setdiff(
+  str_replace(string = objects(pattern = "\\.gcl"),
+              pattern = "\\.gcl",
+              replacement = ''),
+  sillys)
+save_objects(objects = "sillys_strata_2018", path = "../2018/Objects")
+
+# dir.create("Raw genotypes/Strata")
+
+save_sillys(sillyvec = "SCHIG18_7", path = "../2018/Raw genotypes/Strata/")
+
+sapply(sillys_strata_2018, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Data QC
+sillys_strata_2018_n <- matrix(data = NA, nrow = length(sillys_strata_2018), ncol = 4, 
+                               dimnames = list(sillys_strata_2018, c("Genotyped", "Missing", "Duplicate", "Final")))
+
+#~~~~~~~~~~~~~~~~~~
+#### Check loci
+## Get sample size by locus
+original_sillys_strata_2018_n_locus <- SampSizeByLocus.GCL(sillyvec = sillys_strata_2018, loci = loci24)
+min(original_sillys_strata_2018_n_locus)  ## 166
+round(apply(original_sillys_strata_2018_n_locus, 1, function(locus) {min(locus) / max(locus)}), 2)
+
+original_sillys_strata_2018_percent_locus <- apply(original_sillys_strata_2018_n_locus, 1, function(row) {row / max(row)} )
+which(apply(original_sillys_strata_2018_percent_locus, 2, min) < 0.8)  # no re-runs!
+
+# Genotpying percentage by locus and strata
+require(lattice)
+new.colors <- colorRampPalette(c("black", "white"))
+levelplot(t(original_sillys_strata_2018_percent_locus), 
+          col.regions = new.colors, 
+          at = seq(from = 0, to = 1, length.out = 100), 
+          main = "% Genotyped", xlab = "SILLY", ylab = "Locus", 
+          scales = list(x = list(rot = 90)), 
+          aspect = "fill")  # aspect = "iso" will make squares
+
+#~~~~~~~~~~~~~~~~~~
+#### Check individuals
+### Initial
+## Get number of individuals per silly before removing missing loci individuals
+sillys_strata_2018_n[, "Genotyped"] <- sapply(paste0(sillys_strata_2018, ".gcl"), function(x) get(x)$n)
+
+### Missing
+## Remove individuals with >20% missing data
+sillys_strata_2018_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = sillys_strata_2018, proportion = 0.8)
+save_objects(objects = "sillys_strata_2018_MissLoci", path = "../2018/Objects")
+
+## Get number of individuals per silly after removing missing loci individuals
+sillys_strata_2018_n[, "Missing"] <- sillys_strata_2018_n[, "Genotyped"] - 
+  sapply(paste0(sillys_strata_2018, ".gcl"), function(x) get(x)$n)
+
+### Duplicate
+## Check within collections for duplicate individuals.
+sillys_strata_2018_DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = sillys_strata_2018, loci = loci24, quantile = NULL, minproportion = 0.95)
+detach("package:reshape", unload = TRUE)
+sillys_strata_2018_DuplicateCheckReportSummary <- sapply(sillys_strata_2018, function(x) sillys_strata_2018_DuplicateCheck95MinProportion[[x]]$report)
+sillys_strata_2018_DuplicateCheckReportSummary
+save_objects(objects = "sillys_strata_2018_DuplicateCheckReportSummary", path = "../2018/Objects")
+
+## Remove duplicate individuals
+sillys_strata_2018_RemovedDups <- RemoveDups.GCL(sillys_strata_2018_DuplicateCheck95MinProportion)
+
+### Final
+sillys_strata_2018_n[, "Final"] <- sapply(paste0(sillys_strata_2018, ".gcl"), function(x) get(x)$n)
+## Get number of individuals per silly after removing duplicate individuals
+sillys_strata_2018_n[, "Duplicate"] <- sillys_strata_2018_n[, "Genotyped"] - sillys_strata_2018_n[, "Missing"] - sillys_strata_2018_n[, "Final"]
+sillys_strata_2018_n
+
+save_objects(objects = "sillys_strata_2018_n", path = "../2018/Objects")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Combine markers
+CombineLoci.GCL(sillyvec = sillys_strata_2018, markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = sillys_strata_2018, markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### BAYES August 2018 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Dump all mixtures
+invisible(sapply(sillys_strata_2018[7], function(silly) {
+  CreateMixture.GCL(sillys = silly, loci = loci22, IDs = NULL, mixname = silly,
+                    dir = "../2018/BAYES/Mixture", type = "BAYES", PT = FALSE)
+} ))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Run 7
+# Instead of using a rolling prior, Birch ran the logistic model without the artificial August 1 100% late-run anchor to get 91-92% late-run
+chignik_7_2018_prior <- Prior.GCL(groupvec = Groupvec7, groupweights = c(0.08, 0.92), minval = 0.01)  # per Birch Foster
+save_objects(objects = "chignik_7_2018_prior", path = "../2018/Objects/")
+
+# Dump Control Files
+CreateControlFile.GCL(sillyvec = Chignik7Populations, loci = loci22, mixname = "SCHIG18_7", 
+                      basename = "ChignikPops24Loci", suffix = "", nreps = 40000, nchains = 5,
+                      groupvec = Groupvec7, priorvec = chignik_7_2018_prior, initmat = Inits, 
+                      dir = "../2018/BAYES/Control", seeds = WASSIPSockeyeSeeds, thin = c(1,1,100),
+                      mixfortran = ChignikMixtureFormat, basefortran = Chignik24BaselineFormat, switches = "F T F T T T F") 
+
+# Summarize output
+dir.create("../2018/BAYES/Output/SCHIG18_7")
+SCHIG18_7_estimates <- CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "../2018/BAYES/Output", mixvec = "SCHIG18_7",
+                                                    prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
+# dir.create("Estimates objects")
+save_objects(objects = "SCHIG18_7_estimates", path = "../2018/Estimates objects/")
+
+# Create function to view traceplot
+trace_plot.f <- function(estimate_obj) {
+  par(mfrow = c(2, 1), mar = c(4.1, 4.1, 2.1, 2.1))
+  plot(estimate_obj[[2]][[1]][seq(from = 1, to = 100000, by = 10), 1], type = "l", ylim = c(0, 1), ylab = "", main = "Black Lake", xlab = "")
+  abline(v = seq(from = 0, to = 10000, by = 2000))
+  par(mar = c(4.1, 4.1, 2.1, 2.1))
+  plot(estimate_obj[[2]][[1]][seq(from = 1, to = 100000, by = 10), 2], type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Repetitions", cex.lab = 1.2)
+  abline(v = seq(from = 0, to = 10000, by = 2000))
+  mtext(text = "Posterior", side = 2, outer = TRUE, line = -1, cex = 1.2)
+  
+  print(estimate_obj[[1]][[1]][, "GR"])
+}
+
+trace_plot.f(SCHIG18_7_estimates)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## All run output
+SCHIG18_estimates <- CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "../2018/BAYES/Output", mixvec = sillys_strata_2018,
+                                                  prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = FALSE)
+save_objects(objects = "SCHIG18_estimates", path = "../2018/Estimates objects/")
+
+chignik_2018.bayes <- bind_rows(sapply(sillys_strata_2018, function(mix) {
+  as_tibble(cbind(SCHIG18_estimates[[mix]], "repunit" = ChignikGroups, silly = mix))
+}, simplify = FALSE))
+
+## Get all attributes to calculate average date for each strata
+SCHIG18_attributes <- as_tibble(bind_rows(lapply(sillys_strata_2018, function(silly) {
+  cbind(get(paste0(silly, ".gcl"))$attributes, "new_silly" = silly)}
+)))
+
+## Calculate average date per strata
+date_avg <- SCHIG18_attributes %>% 
+  separate(col = new_silly, into = c("new_silly", "strata"), sep = "_") %>% 
+  mutate(strata = as.integer(strata)) %>% 
+  mutate(julian = yday(CAPTURE_DATE)) %>% 
+  group_by(strata) %>%
+  summarize(avg_date = mean(julian))
+
+chignik_2018_dates.bayes <- chignik_2018.bayes %>% 
+  select(silly, repunit, mean, sd, median, `5%`, `95%`, `P=0`, GR) %>% 
+  separate(col = silly, into = c("silly", "strata"), sep = "_") %>% 
+  mutate(strata = as.integer(strata)) %>% 
+  mutate(repunit = factor(x = repunit, levels = ChignikGroups)) %>% 
+  mutate(mean = as.double(mean)) %>% 
+  mutate(sd = as.double(sd)) %>% 
+  mutate(median = as.double(median)) %>% 
+  mutate(`5%` = as.double(`5%`)) %>% 
+  mutate(`95%` = as.double(`95%`)) %>% 
+  mutate(`P=0` = as.double(`P=0`)) %>% 
+  mutate(GR = as.double(GR)) %>% 
+  left_join(date_avg, by = "strata") %>% 
+  mutate(date = as.Date(avg_date, origin = "2017-12-31")) %>% 
+  left_join(date_2018.df, by = "strata")
+
+save_objects(objects = "chignik_2018_dates.bayes", path = "../2018/Estimates objects/")
+write_csv(x = chignik_2018_dates.bayes, path = "../2018/Estimates tables/Chignik 2018 BAYES Estimates.csv")
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Re-run with old loci, new pooling ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Run 7
+# Instead of using a rolling prior, Birch ran the logistic model without the artificial August 1 100% late-run anchor to get 91-92% late-run
+chignik_7_2018_prior_16pops <- Prior.GCL(groupvec = groupvec16, groupweights = c(0.08, 0.92), minval = 0.01)  # per Birch Foster
+save_objects(objects = "chignik_7_2018_prior_16pops", path = "../2018/Objects/")
+
+Inits_16pops <- MultiChainInits.GCL(npops = 16, nchains = 5, prop = 0.9)
+save_objects(objects = "Inits_16pops", path = "../2018/Objects/")
+
+## 16 pops
+dir.create("../2018/BAYES/Control/Chignik16pops24loci/")
+load_objects("../../Baseline/2018/Objects/")
+
+# Dump Control Files
+CreateControlFile.GCL(sillyvec = Chignik16pops, loci = loci22, mixname = "SCHIG18_7", 
+                      basename = "Chignik16pops24loci", suffix = "", nreps = 40000, nchains = 5,
+                      groupvec = groupvec16, priorvec = chignik_7_2018_prior_16pops, initmat = Inits_16pops, 
+                      dir = "../2018/BAYES/Control/Chignik16pops24loci/", seeds = WASSIPSockeyeSeeds, thin = c(1,1,100),
+                      mixfortran = ChignikMixtureFormat, basefortran = NewpopOldmarkFortran, switches = "F T F T T T F") 
+
+# Summarize output
+dir.create("../2018/BAYES/Output/Chignik16pops24loci")
+dir.create("../2018/BAYES/Output/Chignik16pops24loci/SCHIG18_7")
+SCHIG18_7_estimates_16pops <- CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "../2018/BAYES/Output/Chignik16pops24loci", mixvec = "SCHIG18_7",
+                                                           prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
+# dir.create("Estimates objects")
+save_objects(objects = "SCHIG18_7_estimates_16pops", path = "../2018/Estimates objects/")
+
+# Create function to view traceplot
+trace_plot.f <- function(estimate_obj) {
+  par(mfrow = c(2, 1), mar = c(4.1, 4.1, 2.1, 2.1))
+  plot(estimate_obj[[2]][[1]][seq(from = 1, to = 100000, by = 10), 1], type = "l", ylim = c(0, 1), ylab = "", main = "Black Lake", xlab = "")
+  abline(v = seq(from = 0, to = 10000, by = 2000))
+  par(mar = c(4.1, 4.1, 2.1, 2.1))
+  plot(estimate_obj[[2]][[1]][seq(from = 1, to = 100000, by = 10), 2], type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Repetitions", cex.lab = 1.2)
+  abline(v = seq(from = 0, to = 10000, by = 2000))
+  mtext(text = "Posterior", side = 2, outer = TRUE, line = -1, cex = 1.2)
+  
+  print(estimate_obj[[1]][[1]][, "GR"])
+}
+
+trace_plot.f(SCHIG18_7_estimates_16pops)
+
+SCHIG18_7_estimates_16pops$Stats
+
+# Black mean = 0.048 vs. 0.037, small, but legit difference
+# Should test other mixtures to see how much of a difference it makes for old mixtures with more intermediate stock comps
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### August 2018 Sample RAD ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Per Birch Foster on 2019/01/07, set the prior to 91-92% late-run
+# This comes from the 2018 logistical model (minus the 8/1 anchor)
+
+# Run with 2012 Baseline same as always (7 pops, 24 loci, no RAD loci)
+
+rm(list = ls(all.names = TRUE))
+
+library(tidyverse)
+library(lubridate)
+library(rubias)
+library(ggthemes)
+library(gridExtra)
+library(ggpubr)
+
+source("~/../R/Functions.GCL.R")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Load objects and get genotypes ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+load_objects("../2018/Objects/")
+load_objects("../../Baseline/2018/Objects/")
+
+rm(LocusControl)
+
+loci24_RAD <- unlist(strsplit(loci22_RAD, split = "\\."))
+save_objects(objects = "loci24_RAD", path = "../2018/Objects/")
+
+CreateLocusControl.GCL(locusnames = loci24_RAD, username = "krshedd", password = .password)
+
+sillys <- paste0("SCHIG18")
+LOKI2R.GCL(sillyvec = sillys, username = "krshedd", password = .password)
+
+dir.create("../2018/Raw genotypes/RAD")
+save_sillys(sillyvec = sillys, path = "../2018/Raw genotypes/RAD")
+# load_sillys(path = "Raw genotypes", sillyvec = sillys)
+
+sapply(sillys, function(silly) {get(paste0(silly, ".gcl"))$n} )  # 1140/yr
+sapply(sillys, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )  # 2016 is missing Capture Date
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Stratify mixtures
+#~~~~~~~~~~~~~~~~~~
+# Function to pool by sample date
+PoolCollectionsByDateDF <- function(silly, date.df, loci) {
+  sapply(silly, function(mix) {
+    mix.dates <- unique(as.Date(get(paste(mix, ".gcl", sep = ''))$attributes$CAPTURE_DATE))
+    by(data = date.df, INDICES = date.df$strata, function(x) {
+      IDs <- AttributesToIDs.GCL(silly = mix, attribute = "CAPTURE_DATE", matching = mix.dates[mix.dates >= x$begin_date & mix.dates <= x$end_date])
+      IDs <- list(na.omit(IDs))
+      names(IDs) <- mix
+      PoolCollections.GCL(collections = mix, loci = loci, IDs = IDs, newname = paste(mix, as.character(x$strata), sep = "_"))
+      list("First Last Fish" = range(as.numeric(unlist(IDs))), "n" = get(paste(mix, "_", as.character(x$strata), ".gcl", sep = ''))$n)
+    } )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+}
+
+date_2018.df <- tibble(strata = 1:7, 
+                       begin_date = as.Date(x = c("2018-06-26", "2018-07-02", "2018-07-08", "2018-07-17", "2018-07-22", "2018-07-27", "2018-08-08")), 
+                       end_date = as.Date(x = c("2018-06-27", "2018-07-02", "2018-07-12", "2018-07-17", "2018-07-23", "2018-07-27", "2018-08-09")))
+
+PoolCollectionsByDateDF(silly = "SCHIG18", date.df = date_2018.df, loci = loci24_RAD)
+
+sillys_strata_2018 <- setdiff(
+  str_replace(string = objects(pattern = "\\.gcl"),
+              pattern = "\\.gcl",
+              replacement = ''),
+  sillys)
+# save_objects(objects = "sillys_strata_2018", path = "../2018/Objects")
+
+dir.create("../2018/Raw genotypes/RAD/Strata")
+
+save_sillys(sillyvec = "SCHIG18_7", path = "../2018/Raw genotypes/RAD/Strata/")
+
+sapply(sillys_strata_2018[7], function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
+
+sillys_strata7_2018_RAD <- sillys_strata_2018[7]
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Data QC
+sillys_strata7_2018_RAD_n <- matrix(data = NA, nrow = length(sillys_strata7_2018_RAD), ncol = 4, 
+                               dimnames = list(sillys_strata7_2018_RAD, c("Genotyped", "Missing", "Duplicate", "Final")))
+
+#~~~~~~~~~~~~~~~~~~
+#### Check loci
+## Get sample size by locus
+original_sillys_strata7_2018_RAD_n_locus <- SampSizeByLocus.GCL(sillyvec = sillys_strata7_2018_RAD, loci = loci24_RAD)
+min(original_sillys_strata7_2018_RAD_n_locus)  ## 166
+round(apply(original_sillys_strata7_2018_RAD_n_locus, 1, function(locus) {min(locus) / max(locus)}), 2)
+
+original_sillys_strata7_2018_RAD_percent_locus <- apply(original_sillys_strata7_2018_RAD_n_locus, 1, function(row) {row / max(row)} )
+which(apply(original_sillys_strata7_2018_RAD_percent_locus, 2, min) < 0.8)  # no re-runs!
+
+# Genotpying percentage by locus and strata
+require(lattice)
+new.colors <- colorRampPalette(c("black", "white"))
+levelplot(t(original_sillys_strata7_2018_RAD_percent_locus), 
+          col.regions = new.colors, 
+          at = seq(from = 0, to = 1, length.out = 100), 
+          main = "% Genotyped", xlab = "SILLY", ylab = "Locus", 
+          scales = list(x = list(rot = 90)), 
+          aspect = "fill")  # aspect = "iso" will make squares
+
+#~~~~~~~~~~~~~~~~~~
+#### Check individuals
+### Initial
+## Get number of individuals per silly before removing missing loci individuals
+sillys_strata7_2018_RAD_n[, "Genotyped"] <- sapply(paste0(sillys_strata7_2018_RAD, ".gcl"), function(x) get(x)$n)
+
+### Missing
+## Remove individuals with >20% missing data
+sillys_strata7_2018_RAD_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = sillys_strata7_2018_RAD, proportion = 0.8)
+save_objects(objects = "sillys_strata7_2018_RAD_MissLoci", path = "../2018/Objects")
+
+## Get number of individuals per silly after removing missing loci individuals
+sillys_strata7_2018_RAD_n[, "Missing"] <- sillys_strata7_2018_RAD_n[, "Genotyped"] - 
+  sapply(paste0(sillys_strata7_2018_RAD, ".gcl"), function(x) get(x)$n)
+
+### Duplicate
+## Check within collections for duplicate individuals.
+sillys_strata7_2018_RAD_DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = sillys_strata7_2018_RAD, loci = loci24_RAD, quantile = NULL, minproportion = 0.95)
+detach("package:reshape", unload = TRUE)
+sillys_strata7_2018_RAD_DuplicateCheckReportSummary <- sapply(sillys_strata7_2018_RAD, function(x) sillys_strata7_2018_RAD_DuplicateCheck95MinProportion[[x]]$report)
+sillys_strata7_2018_RAD_DuplicateCheckReportSummary
+save_objects(objects = "sillys_strata7_2018_RAD_DuplicateCheckReportSummary", path = "../2018/Objects")
+
+## Remove duplicate individuals
+sillys_strata7_2018_RAD_RemovedDups <- RemoveDups.GCL(sillys_strata7_2018_RAD_DuplicateCheck95MinProportion)
+
+### Final
+sillys_strata7_2018_RAD_n[, "Final"] <- sapply(paste0(sillys_strata7_2018_RAD, ".gcl"), function(x) get(x)$n)
+## Get number of individuals per silly after removing duplicate individuals
+sillys_strata7_2018_RAD_n[, "Duplicate"] <- sillys_strata7_2018_RAD_n[, "Genotyped"] - sillys_strata7_2018_RAD_n[, "Missing"] - sillys_strata7_2018_RAD_n[, "Final"]
+sillys_strata7_2018_RAD_n
+
+save_objects(objects = "sillys_strata7_2018_RAD_n", path = "../2018/Objects")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Combine markers
+CombineLoci.GCL(sillyvec = sillys_strata7_2018_RAD, markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = sillys_strata7_2018_RAD, markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### BAYES August 2018 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Dump all mixtures
+dir.create("../2018/BAYES/Mixture/RAD")
+invisible(sapply(sillys_strata7_2018_RAD, function(silly) {
+  CreateMixture.GCL(sillys = silly, loci = loci22_RAD, IDs = NULL, mixname = silly,
+                    dir = "../2018/BAYES/Mixture/RAD/", type = "BAYES", PT = FALSE)
+} ))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Run 7
+# Instead of using a rolling prior, Birch ran the logistic model without the artificial August 1 100% late-run anchor to get 91-92% late-run
+# Dump Control Files
+dir.create("../2018/BAYES/Control/Chignik16pops22RAD/")
+CreateControlFile.GCL(sillyvec =  , loci = loci22_RAD, mixname = "SCHIG18_7", 
+                      basename = "Chignik16pops22RAD", suffix = "", nreps = 40000, nchains = 5,
+                      groupvec = groupvec16, priorvec = chignik_7_2018_prior_16pops, initmat = Inits_16pops, 
+                      dir = "../2018/BAYES/Control/Chignik16pops22RAD/", seeds = WASSIPSockeyeSeeds, thin = c(1,1,100),
+                      mixfortran = ChignikMixtureFormat, basefortran = BaselineFortran, switches = "F T F T T T F") 
+
+# Summarize output
+dir.create("../2018/BAYES/Output/Chignik16pops22RAD")
+dir.create("../2018/BAYES/Output/Chignik16pops22RAD/SCHIG18_7")
+SCHIG18_7_estimates_16pops_RAD <- CustomCombineBAYESOutput.GCL(groupvec = 1:2, groupnames = ChignikGroups, maindir = "../2018/BAYES/Output/Chignik16pops22RAD", mixvec = "SCHIG18_7",
+                                                               prior = "", ext = "RGN", nchains = 5, burn = 0.5, alpha = 0.1, PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
+# dir.create("Estimates objects")
+save_objects(objects = "SCHIG18_7_estimates_16pops_RAD", path = "../2018/Estimates objects/")
+
+trace_plot.f(SCHIG18_7_estimates_16pops_RAD)
+
+load_objects(path = "../2018/Estimates objects/")
+SCHIG18_7_estimates_16pops_RAD$Stats  # 0.060 Black Lake, sd 0.029
+SCHIG18_7_estimates_16pops$Stats  # 0.048 Black Lake, sd 0.033
+SCHIG18_7_estimates$Stats  # 0.027 Black Lake, sd = 0.028
