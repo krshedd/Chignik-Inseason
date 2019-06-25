@@ -1,0 +1,575 @@
+---
+title: "Chignik Sockeye Inseason 2019"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Purpose
+
+This inseason analysis serves two purposes:  
+
+  1) Analyze 2019 inseason samples against the new baseline with 16 populations and the 2 new RAD loci,
+  2) Provide historical perspecitve (i.e. compare to previous years 2010-2018) .
+  
+The *BAYES* baseline update was described in `../../../Baseline/2018/`
+
+This *R Notebook* will perform the following tasks:  
+
+  * Setup 2019 and import files from 2018
+  * Import genotypes
+  * Create mixture strata
+  * Data QA
+  * Mixture anlaysis with *BAYES*
+  * Summarise mixture output
+  * Save workspace for separate *R markdown* file that creates final report
+
+# Background
+
+This project estimates the stock composition of early- and late-run sockeye salmon through the Chignik weir to estiamte the transition between the two runs in the escapement.
+
+# Setup
+
+Load packages and source GCL functions.
+```{r load_source}
+rm(list = ls())
+
+library(tidyverse)
+library(lubridate)
+library(rubias)
+library(ggthemes)
+library(gridExtra)
+library(ggpubr)
+# library(conflicted)
+
+source("~/../R/Functions.GCL.R")
+.username = ""
+.password = ""
+
+
+load_objects(path = "../../2019/Objects")
+load_objects(path = "../../2019/rubias/baseline")
+```
+
+# Prep 2019
+
+## Create directories
+
+```{r 2018_dirs}
+(dirs_2018 <- list.dirs(path = "../../2018", full.names = FALSE, recursive = FALSE))
+```
+
+```{r 2019_main_dirs}
+dir.create("../../2019")
+
+dirs_2019 <- paste0("../../2019/", dirs_2018[c(1:2, 4:6, 8:11)])
+sapply(dirs_2019, dir.create)
+```
+
+```{r 2019_sub_dirs}
+dir.create("../../2019/Raw genotypes/Strata")
+
+dirs_rubias_2019 <- paste0("../../2019/rubias/", c("baseline", "mixture", "output"))
+sapply(dirs_rubias_2019, dir.create)
+
+dirs_BAYES_2019 <- paste0("../../2019/BAYES/", c("Baseline", "Control", "Mixture", "Output"))
+sapply(dirs_BAYES_2019, dir.create)
+```
+
+## Copy 2018 files
+
+```{r BAYES_baseline_objects_copy_paste}
+baseline_objects_2018 <- list.files(path = "../../../Baseline/2018/Objects/", pattern = ".txt", full.names = TRUE)[-c(6:7)]
+
+file.copy(from = baseline_objects_2018, to = "../../2019/Objects/")
+```
+
+```{r BAYES_baseline_copy_paste}
+file.copy(from = "../../../Baseline/2018/BAYES/Baseline/Chignik16pops22RAD.bse", 
+          to = "../../2019/BAYES/Baseline/")
+```
+
+```{r 2018_objects_copy_paste}
+objects_2018 <- c("../../2018/Objects/chignik_colors.txt",
+                  "../../2018/Objects/Inits_16pops.txt",
+                  "../../2018/Objects/loci24_RAD.txt",
+                  "../../2018/Objects/WASSIPSockeyeSeeds.txt")
+
+file.copy(from = objects_2018, to = "../../2019/Objects/")
+```
+
+```{r 2018_estimates_copy_paste}
+estimates_objects_2018 <- list.files(path = "../../2018/Estimates objects/", pattern = "chignik_2018_dates", full.names = TRUE)
+
+file.copy(from = estimates_objects_2018, to = "../../2019/Estimates objects/")
+```
+
+
+```{r 2018_estimates_csv_copy_paste}
+estimates_csv_objects_2018 <- list.files(path = "../../2018/Estimates tables/", full.names = TRUE)
+
+file.copy(from = estimates_csv_objects_2018, to = "../../2019/Estimates tables/")
+```
+
+# Re-do *rubias* baseline
+
+## Create LocusControl
+
+```{r 2019_locuscontrol}
+CreateLocusControl.GCL(locusnames = loci24_RAD, username = .username, password = .password)
+save_objects("LocusControl", path = "../../2019/Objects/")
+```
+
+## Baseline collections
+
+```{r read_baseline_genotypes}
+ChignikCollections <-
+      c(
+        "SHAT96",
+        "SHAT97E",
+        "SALEC97",
+        "SBOUL97",
+        "SBROAD97",
+        "SBSPR97",
+        "SCHIA97E",
+        "SCHIA97M",
+        "SCHIG98",
+        "SCLARK96",
+        "SCLRK97E",
+        "SFAN97",
+        "SCHIA08",
+        "SCHIG08",
+        "SCLARK08",
+        "SCUCU08",
+        "SHAT08E",
+        "SWESTF08"
+      ) # note - no SWESTF97 due to lack of metadata, as noted in Tyler's 2012 baseline update.
+save_objects(objects = "ChignikCollections", path = "../../2019/Objects/")
+
+## Pull all data for each silly code and create .gcl objects for each
+LOKI2R.GCL(sillyvec = ChignikCollections,
+           username = .username,
+           password = .password)
+```
+
+## Data QA
+
+Perform standard data QA processes to filter out untrustworth genotypes.
+```{r qa_setup_baseline}
+sample_size_qa_baseline <- tibble(silly = ChignikCollections) %>% 
+  mutate(genotyped = sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Missing
+
+Remove individuals missing >=20% of genotypes (i.e. the 80% rule).
+```{r qa_missing_baseline}
+miss_loci_baseline <- RemoveIndMissLoci.GCL(sillyvec = ChignikCollections, proportion = 0.8)
+save_objects("miss_loci_baseline", "../../2019/Objects/")
+
+# show individuals removed
+miss_loci_baseline[miss_loci_baseline != "None"]
+
+sample_size_qa_baseline <- sample_size_qa_baseline %>% 
+  mutate(missing = genotyped - sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Duplicate
+
+Remove duplicate individuals within the same collection. Typically we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other.
+```{r qa_duplicate_baseline}
+duplicate_check_95_baseline <- CheckDupWithinSilly.GCL(sillyvec = ChignikCollections, loci = loci24_RAD, quantile = NULL, minproportion = 0.95)
+duplicate_summary_baseline <- sapply(ChignikCollections, function(x) duplicate_check_95_baseline[[x]]$report, simplify = FALSE)
+duplicate_remove_baseline <- RemoveDups.GCL(duplicate_check_95_baseline)
+save_objects(c("duplicate_summary_baseline", "duplicate_remove_baseline"), "../../2019/Objects/")
+
+# show individuals removed
+duplicate_remove_baseline[duplicate_remove_baseline != "Nothing Removed"]
+
+sample_size_qa_baseline <- sample_size_qa_baseline %>% 
+  mutate(duplicate = genotyped - missing - sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Final
+
+How many fish did we end up with in our final baseline? Save final genotypes.
+```{r qa_final_baseline}
+(sample_size_qa_baseline <- sample_size_qa_baseline %>% 
+  mutate(final = sapply(silly, function(x) get(paste0(x, ".gcl"))$n)))
+
+write_csv(sample_size_qa_baseline, "../../2019/sample_size_qa_baseline.csv")
+```
+
+## Combine loci
+
+Since I am just using the final 22 loci I need to combine GPDH and MHC2 into their final forms. 
+```{r combine_loci_baseline}
+CombineLoci.GCL(sillyvec = ChignikCollections, markerset = c("One_GPDH2", "One_GPDH"), update = TRUE)
+CombineLoci.GCL(sillyvec = ChignikCollections, markerset = c("One_MHC2_251", "One_MHC2_190"), update = TRUE)
+```
+
+## Pool populations
+
+```{r pool_baseline_populations}
+chignik_baseline_pooling <- str_split(string = grep(pattern = "\\.", x = Chignik16pops, value = TRUE), pattern = "\\.")
+
+
+lapply(chignik_baseline_pooling,
+       function(x) {
+         PoolCollections.GCL(
+           collections = x,
+           loci = loci22_RAD,
+           IDs = NULL,
+           newname = paste(x,
+                           collapse = ".")
+         )
+       } )
+```
+
+## Save baseline populations
+
+```{r save_baseline}
+save_sillys(sillyvec = Chignik16pops, path = "../../2019/Baseline genotypes/")
+```
+
+## Create *rubas* baseline
+
+```{r create_rubias_baseline}
+chignik_16pops_loci22_RAD.base <- create_rubias_baseline(
+  sillyvec = Chignik16pops, 
+  loci = loci22_RAD, 
+  group_names = ChignikGroups, 
+  groupvec = groupvec16, 
+  path = "../../2019/rubias/baseline/",
+  baseline_name = "chignik_16pops_loci22_RAD"
+  )
+save_objects(objects = "chignik_16pops_loci22_RAD.base", path = "../../2019/rubias/baseline/")
+```
+
+
+# Run 1
+
+Find and replace "run1"
+```{r run1_setup}
+sillys <- "SCHIG19"
+strata <- 1
+(sillys_strata <- paste(sillys, strata, sep = "_"))
+```
+
+## Read genotypes
+
+Sample size should be multiples of 190.
+```{r run1_read_genotypes}
+LOKI2R.GCL(sillyvec = sillys, username = .username, password = .password)
+save_sillys(sillyvec = sillys, path = "../../2019/Raw genotypes/")
+
+sapply(sillys, function(silly) {get(paste0(silly, ".gcl"))$n} )
+sapply(sillys, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
+```
+
+## Create strata
+
+```{r run1_strata}
+# Function to pool by sample date
+PoolCollectionsByDateDF <- function(silly, date.df, loci) {
+  sapply(silly, function(mix) {
+    mix.dates <- unique(as.Date(get(paste(mix, ".gcl", sep = ''))$attributes$CAPTURE_DATE))
+    by(data = date.df, INDICES = date.df$strata, function(x) {
+      IDs <- AttributesToIDs.GCL(silly = mix, attribute = "CAPTURE_DATE", matching = mix.dates[mix.dates >= x$begin_date & mix.dates <= x$end_date])
+      IDs <- list(na.omit(IDs))
+      names(IDs) <- mix
+      PoolCollections.GCL(collections = mix, loci = loci, IDs = IDs, newname = paste(mix, as.character(x$strata), sep = "_"))
+      list("First Last Fish" = range(as.numeric(unlist(IDs))), "n" = get(paste(mix, "_", as.character(x$strata), ".gcl", sep = ''))$n)
+    } )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+}
+
+# Strata dates
+date_2019.df <- tibble(strata = 1, 
+                       begin_date = as.Date(x = c("2018-06-25")), 
+                       end_date = as.Date(x = c("2018-06-25")))
+
+# Pool
+PoolCollectionsByDateDF(silly = "SCHIG18", date.df = date_2019.df, loci = loci24_RAD)
+
+# Save
+sillys_strata_2019 <- setdiff(
+  str_replace(string = objects(pattern = "\\.gcl"), 
+              pattern = "\\.gcl", 
+              replacement = ''),
+  sillys)
+save_objects(objects = "sillys_strata_2019", path = "Objects")
+save_sillys(sillyvec = sillys_strata, path = "Raw genotypes/Strata/")
+
+# Verify
+sapply(sillys_strata, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
+```
+
+
+## Data QA
+
+Check loci failure rate.
+```{r run1_QA_loci}
+## Get sample size by locus
+original_sillys_strata_2019_run1_n_locus <- SampSizeByLocus.GCL(sillyvec = sillys_strata, loci = loci24_RAD)
+min(original_sillys_strata_2019_run1_n_locus)
+round(apply(original_sillys_strata_2019_run1_n_locus, 1, function(locus) {min(locus) / max(locus)}), 2)
+
+original_sillys_strata_percent_locus <- apply(original_sillys_strata_2019_run1_n_locus, 1, function(row) {row / max(row)} )
+which(apply(original_sillys_strata_percent_locus, 2, min) < 0.8)  # no re-runs!
+
+# Genotpying percentage by locus and strata
+require(lattice)
+new.colors <- colorRampPalette(c("black", "white"))
+levelplot(t(original_sillys_strata_percent_locus), 
+          col.regions = new.colors, 
+          at = seq(from = 0, to = 1, length.out = 100), 
+          main = "% Genotyped", xlab = "SILLY", ylab = "Locus", 
+          scales = list(x = list(rot = 90)), 
+          aspect = "fill")  # aspect = "iso" will make squares
+```
+
+
+Perform standard data QA processes to filter out untrustworth genotypes.
+```{r qa_setup_2019_run1}
+sillys_strata_2019_n <- tibble(silly = sillys_strata_2019) %>% 
+  mutate(genotyped = sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Missing
+
+Remove individuals missing >=20% of genotypes (i.e. the 80% rule).
+```{r qa_missing_2019_run1}
+sillys_strata_2019_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = sillys_strata_2019, proportion = 0.8)
+save_objects("sillys_strata_2019_MissLoci", "../../2019/Objects/")
+
+# show individuals removed
+sillys_strata_2019_MissLoci[sillys_strata_2019_MissLoci != "None"]
+
+sillys_strata_2019_n <- sillys_strata_2019_n %>% 
+  mutate(missing = genotyped - sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Duplicate
+
+Remove duplicate individuals within the same collection. Typically we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other.
+```{r qa_duplicate_2019_run1}
+sillys_strata_2019_DuplicateCheck95MinProportion <-
+  CheckDupWithinSilly.GCL(
+    sillyvec = sillys_strata_2019,
+    loci = loci24_RAD,
+    quantile = NULL,
+    minproportion = 0.95
+  )
+
+(sillys_strata_2019_DuplicateCheckReportSummary <-
+  sapply(sillys_strata_2019, function(x)
+    sillys_strata_2019_DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE))
+
+sillys_strata_2018_RemovedDups <-
+  RemoveDups.GCL(sillys_strata_2019_DuplicateCheck95MinProportion)
+
+save_objects(
+  c("sillys_strata_2019_DuplicateCheckReportSummary", "sillys_strata_2018_RemovedDups"),
+  "../../2019/Objects/"
+)
+
+# show individuals removed
+sillys_strata_2018_RemovedDups[sillys_strata_2018_RemovedDups != "Nothing Removed"]
+
+sillys_strata_2019_n <- sillys_strata_2019_n %>%
+  mutate(duplicate = genotyped - missing - sapply(silly, function(x)
+    get(paste0(x, ".gcl"))$n))
+```
+
+### Final
+
+How many fish did we end up with in our final baseline? Save final genotypes.
+```{r qa_final_2019_run1}
+(sillys_strata_2019_n <- sillys_strata_2019_n %>% 
+  mutate(final = sapply(silly, function(x) get(paste0(x, ".gcl"))$n)))
+
+save_objects(objects = "sillys_strata_2019_n", path = "../../2019/Objects/")
+write_csv(sillys_strata_2019_n, "../../2019/Tables/sillys_strata_2019_n.csv")
+```
+
+
+## Combine loci
+
+Need to combine GDPH and MHC markers
+```{r combine_loci_run1}
+CombineLoci.GCL(sillyvec = sillys_strata, markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = sillys_strata, markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+```
+
+
+## BAYES
+
+### Mixture format
+
+```{r mix_run1}
+MixtureFortran <- 
+  CreateMixture.GCL(
+    sillys = sillys_strata, 
+    loci = loci22_RAD, 
+    IDs = NULL, 
+    mixname = sillys_strata,
+    dir = "BAYES/Mixture",
+    type = "BAYES",
+    PT = FALSE
+  )
+save_objects(objects = "MixtureFortran", path = "../../2019/Objects")
+```
+
+### Prior
+
+```{r prior_run1}
+chignik_1_2019_prior <- 
+  Prior.GCL(
+    groupvec = groupvec16, 
+    groupweights = chignik_2019_start_prior_weights, 
+    minval = 0.01
+  )
+save_objects(objects = "chignik_1_2019_prior", path = "../../2019/Objects")
+```
+
+### Control files
+
+```{r control_run1}
+CreateControlFile.GCL(
+  sillyvec = Chignik16pops, 
+  loci = loci22_RAD, 
+  mixname = sillys_strata, 
+  basename = "Chignik16pops22RAD", 
+  suffix = "", 
+  nreps = 40000, 
+  nchains = 5,
+  groupvec = groupvec16, 
+  priorvec = chignik_1_2019_prior, 
+  initmat = Inits_16pops, 
+  dir = "../../2019/BAYES/Control",
+  seeds = WASSIPSockeyeSeeds, 
+  thin = c(1, 1, 100),
+  mixfortran = MixtureFortran, 
+  basefortran = BaselineFortran, 
+  switches = "F T F T T T F"
+) 
+
+dir.create(paste0("../../2019/BAYES/Output/", sillys_strata))
+```
+
+## Summarize output
+
+```{r estimates_run1}
+SCHIG19_1_estimates <- 
+  CustomCombineBAYESOutput.GCL(
+    groupvec = 1:2, 
+    groupnames = ChignikGroups, 
+    maindir = "../../2019/BAYES/Output", 
+    mixvec = sillys_strata,
+    prior = "", 
+    ext = "RGN", 
+    nchains = 5, 
+    burn = 0.5, 
+    alpha = 0.1, 
+    PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
+
+save_objects(objects = "SCHIG19_1_estimates", path = "../../2019/Estimates objects/")
+```
+
+Create function to view traceplot
+```{r traceplot_run1}
+trace_plot.f <- function(estimate_obj) {
+  par(mfrow = c(2, 1), mar = c(4.1, 4.1, 2.1, 2.1))
+  
+  plot(estimate_obj[[2]][[1]][seq(from = 1, to = 100000, by = 10), 1], type = "l", ylim = c(0, 1), ylab = "", main = "Black Lake", xlab = "")
+  abline(v = seq(from = 0, to = 10000, by = 2000))
+  par(mar = c(4.1, 4.1, 2.1, 2.1))
+  plot(estimate_obj[[2]][[1]][seq(from = 1, to = 100000, by = 10), 2], type = "l", ylim = c(0, 1), ylab = "", main = "Chignik Lake", xlab = "Repetitions", cex.lab = 1.2)
+  abline(v = seq(from = 0, to = 10000, by = 2000))
+  mtext(text = "Posterior", side = 2, outer = TRUE, line = -1, cex = 1.2)
+  
+  print(estimate_obj[[1]][[1]][, "GR"])
+}
+
+save_objects(objects = "trace_plot.f", path = "../../2019/Objects/")
+trace_plot.f(estimate_obj = SCHIG19_1_estimates)
+```
+
+Add to summary
+```{r summary_run1}
+SCHIG19_estimates <- 
+  CustomCombineBAYESOutput.GCL(
+    groupvec = 1:2, 
+    groupnames = ChignikGroups, 
+    maindir = "../../2019/BAYES/Output", 
+    mixvec = sillys_strata_2019,
+    prior = "", 
+    ext = "RGN", 
+    nchains = 5, 
+    burn = 0.5, 
+    alpha = 0.1, 
+    PosteriorOutput = FALSE)
+
+save_objects(objects = "SCHIG19_estimates", path = "../../2019/Estimates objects/")
+```
+
+Bind everything together
+```{r summary_all_year_run1}
+chignik_2019.bayes <- bind_rows(sapply(sillys_strata_2019, function(mix) {
+  as_tibble(cbind(SCHIG19_estimates[[mix]], "repunit" = ChignikGroups, silly = mix))
+}, simplify = FALSE))
+```
+
+Get sample sizes and dates for each strata to calculate average date
+```{r attributes_run1}
+SCHIG19_attributes <-
+  as_tibble(bind_rows(lapply(sillys_strata_2019, function(silly) {
+    cbind(get(paste0(silly, ".gcl"))$attributes, "new_silly" = silly)
+  })))
+
+date_avg <- SCHIG19_attributes %>% 
+  separate(col = new_silly, into = c("new_silly", "strata"), sep = "_") %>% 
+  mutate(strata = as.integer(strata)) %>% 
+  mutate(julian = yday(CAPTURE_DATE)) %>% 
+  group_by(strata) %>%
+  summarize(avg_date = mean(julian))
+```
+
+Final summary with dates
+```{r summary_all_year_dates_run1}
+chignik_2019_dates.bayes <- chignik_2019.bayes %>% 
+  select(silly, repunit, mean, sd, median, `5%`, `95%`, `P=0`, GR) %>% 
+  separate(col = silly, into = c("silly", "strata"), sep = "_") %>% 
+  mutate(strata = as.integer(strata)) %>% 
+  mutate(repunit = factor(x = repunit, levels = ChignikGroups)) %>% 
+  mutate(mean = as.double(mean)) %>% 
+  mutate(sd = as.double(sd)) %>% 
+  mutate(median = as.double(median)) %>% 
+  mutate(`5%` = as.double(`5%`)) %>% 
+  mutate(`95%` = as.double(`95%`)) %>% 
+  mutate(`P=0` = as.double(`P=0`)) %>% 
+  mutate(GR = as.double(GR)) %>% 
+  left_join(date_avg, by = "strata") %>% 
+  mutate(date = as.Date(avg_date, origin = "2018-12-31")) %>% 
+  left_join(date_2019.df, by = "strata")
+
+save_objects(objects = "chignik_2019_dates.bayes", path = "../../2019/Estimates objects/")
+write_csv(x = chignik_2019_dates.bayes, path = "../../2019/Estimates tables/Chignik 2018 BAYES Estimates.csv")
+```
+
+
+## Prior for next round
+```{r prior_run2}
+chignik_2_2019_prior <- Prior.GCL(groupvec = groupvec16, groupweights = SCHIG19_1_estimates[[1]][[1]][, 1], minval = 0.01)
+save_objects(objects = "chignik_2_2019_prior", path = "../../2019/Objects/")
+```
+
+## Save
+```{r save_run1}
+save.image("../../2019/chignik_2019_run1.RData")
+```
+
