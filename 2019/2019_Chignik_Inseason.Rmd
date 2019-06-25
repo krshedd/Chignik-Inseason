@@ -51,7 +51,7 @@ source("~/../R/Functions.GCL.R")
 
 
 load_objects(path = "../../2019/Objects")
-load_objects(path = "../../2019/rubias/baseline")
+# load_objects(path = "../../2019/rubias/baseline")
 ```
 
 # Prep 2019
@@ -247,6 +247,18 @@ chignik_16pops_loci22_RAD.base <- create_rubias_baseline(
   baseline_name = "chignik_16pops_loci22_RAD"
   )
 save_objects(objects = "chignik_16pops_loci22_RAD.base", path = "../../2019/rubias/baseline/")
+```
+
+
+# Average model 2010-2018
+
+From Lukas and Dan Schindler's code with 2010-2018 data and `preseason = TRUE`
+```{r}
+stan_model <- read_csv("V:/Documents/4_Westward/Sockeye/Chignik GSI Inseason Model - Schindler/bayesian_hierarchical_transition_model/current_year_curves.csv") %>% 
+  rename(julian = X1, chignik_late_prop = V1) %>% 
+  mutate(date = as.Date(julian, origin = "2018-12-31")) %>% 
+  select(julian, date, chignik_late_prop) %>% 
+  write_csv(path = "../../2019/2019_preseason_average_GSI_model_stan.csv")
 ```
 
 
@@ -559,6 +571,11 @@ chignik_2019_dates.bayes <- chignik_2019.bayes %>%
 
 save_objects(objects = "chignik_2019_dates.bayes", path = "../../2019/Estimates objects/")
 write_csv(x = chignik_2019_dates.bayes, path = "../../2019/Estimates tables/Chignik 2018 BAYES Estimates.csv")
+```
+
+```{r model_average_run1}
+mod_avg <- read_csv(file = "../../2019/2019_preseason_average_GSI_model_stan.csv") %>% 
+  mutate(date = as.Date(date, format = "%d-%B"))
 ```
 
 

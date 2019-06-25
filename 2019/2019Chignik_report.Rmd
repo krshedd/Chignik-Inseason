@@ -63,21 +63,39 @@ chignik_2019_dates.bayes %>%
 ```
 
 ```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
-mod_final %>% 
-  filter(date > "2019-06-15") %>% 
-  mutate(black_early_prop = 1 - chignik_late_prop) %>% 
-  mutate(black_prop = 1 - chignik_prop) %>% 
-ggplot(aes(x = date, y = black_early_prop * 100)) +
+mod_avg %>%
+  filter(date > "2019-06-15") %>%
+  mutate(black_early_prop = 1 - chignik_late_prop) %>%
+  # mutate(black_prop = 1 - chignik_prop) %>%
+  ggplot(aes(x = date, y = black_early_prop * 100)) +
   geom_line(lwd = 3) +
-  geom_line(aes(x = date, y = black_prop * 100), lwd = 3, colour = "grey50") +
-geom_point(data = filter(chignik_2019_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100), colour = "red", cex = 5) +
-  geom_errorbar(data = filter(chignik_2019_dates.bayes, repunit == "Black Lake"), aes(x = date, y = mean * 100, ymin = `5%` * 100, ymax = `95%` * 100), colour = "red", lwd = 1.5, width = 3) +
+  # geom_line(aes(x = date, y = black_prop * 100), lwd = 3, colour = "grey50") +
+  geom_point(
+    data = filter(chignik_2019_dates.bayes, repunit == "Black Lake"),
+    aes(x = date, y = mean * 100),
+    colour = "red",
+    cex = 5
+  ) +
+  geom_errorbar(
+    data = filter(chignik_2019_dates.bayes, repunit == "Black Lake"),
+    aes(
+      x = date,
+      y = mean * 100,
+      ymin = `5%` * 100,
+      ymax = `95%` * 100
+    ),
+    colour = "red",
+    lwd = 1.5,
+    width = 3
+  ) +
   scale_x_date(date_labels = "%B %d", date_breaks = "1 week") +
   xlab("Sample Date") +
   ylab("Black Lake (Early Run) % of Sample") +
-  ggtitle("2019 Chignik Sockeye GSI\nwith Expected Transition and 2019 Transition")+
+  ggtitle("2019 Chignik Sockeye GSI\nwith Average Transition (2010-2018)") +
   theme_classic(base_size = 18) +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none")
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
 ```
