@@ -14,6 +14,8 @@ date: "`r paste('Reported on:', format(Sys.Date(), format = '%B %d, %Y'), 'at', 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
+rm(list = ls(all.names = TRUE))
+
 library(tidyverse)
 library(lubridate)
 library(knitr)
@@ -38,18 +40,18 @@ load("../../2019/chignik_2019_run1.RData")
 
 # 2019 GSI Summary
 
-Summary of genetic stock composition point estimates (%) for each of the six sampling strata.
+Summary of genetic stock composition point estimates (%) for each of the `r nrow(sillys_strata_2019_n)` sampling strata to date.
 
 ```{r summary_table, warning=FALSE, message=FALSE}
 sillys_strata_2019_n.df <- as.tibble(cbind(sillys_strata_2019_n, "silly_strata" = rownames(sillys_strata_2019_n))) %>% 
-  rename(n = Final) %>% 
-  select(silly_strata, n) %>% 
+  dplyr::rename(n = final) %>% 
+  select(silly, n) %>% 
   mutate(n = as.integer(n))
 
 options(knitr.kable.NA = '')
 chignik_2019_dates.bayes %>% 
   unite(col = silly_strata, c("silly", "strata"), sep = "_", remove = FALSE) %>% 
-  left_join(sillys_strata_2019_n.df) %>% 
+  left_join(sillys_strata_2019_n.df, by = c("silly_strata" = "silly")) %>% 
   mutate(dates = ifelse(begin_date == end_date, 
                         format(begin_date, format = "%B %d"), 
                         paste(format(begin_date, format = "%B %d"), format(end_date, format = "%d"), sep = "-"))) %>% 
@@ -64,7 +66,7 @@ chignik_2019_dates.bayes %>%
 
 ```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
 mod_avg %>%
-  filter(date > "2019-06-15") %>%
+  filter(date > "2019-06-15" & date < "2019-08-10") %>%
   mutate(black_early_prop = 1 - chignik_late_prop) %>%
   # mutate(black_prop = 1 - chignik_prop) %>%
   ggplot(aes(x = date, y = black_early_prop * 100)) +
@@ -78,12 +80,8 @@ mod_avg %>%
   ) +
   geom_errorbar(
     data = filter(chignik_2019_dates.bayes, repunit == "Black Lake"),
-    aes(
-      x = date,
-      y = mean * 100,
-      ymin = `5%` * 100,
-      ymax = `95%` * 100
-    ),
+    aes(x = date, ymin = `5%` * 100, ymax = `95%` * 100),
+    inherit.aes = FALSE,
     colour = "red",
     lwd = 1.5,
     width = 3
