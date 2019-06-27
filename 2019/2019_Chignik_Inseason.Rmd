@@ -46,7 +46,7 @@ library(ggpubr)
 # library(conflicted)
 
 source("~/../R/Functions.GCL.R")
-.username = ""
+.username = "krshedd"
 .password = ""
 
 
@@ -301,11 +301,11 @@ PoolCollectionsByDateDF <- function(silly, date.df, loci) {
 
 # Strata dates
 date_2019.df <- tibble(strata = 1, 
-                       begin_date = as.Date(x = c("2018-06-25")), 
-                       end_date = as.Date(x = c("2018-06-25")))
+                       begin_date = as.Date(x = c("2019-06-25")), 
+                       end_date = as.Date(x = c("2019-06-25")))
 
 # Pool
-PoolCollectionsByDateDF(silly = "SCHIG18", date.df = date_2019.df, loci = loci24_RAD)
+PoolCollectionsByDateDF(silly = "SCHIG19", date.df = date_2019.df, loci = loci24_RAD)
 
 # Save
 sillys_strata_2019 <- setdiff(
@@ -313,8 +313,8 @@ sillys_strata_2019 <- setdiff(
               pattern = "\\.gcl", 
               replacement = ''),
   sillys)
-save_objects(objects = "sillys_strata_2019", path = "Objects")
-save_sillys(sillyvec = sillys_strata, path = "Raw genotypes/Strata/")
+save_objects(objects = "sillys_strata_2019", path = "../../2019/Objects")
+save_sillys(sillyvec = sillys_strata, path = "../../2019/Raw genotypes/Strata/")
 
 # Verify
 sapply(sillys_strata, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
@@ -429,7 +429,7 @@ MixtureFortran <-
     loci = loci22_RAD, 
     IDs = NULL, 
     mixname = sillys_strata,
-    dir = "BAYES/Mixture",
+    dir = "../../2019/BAYES/Mixture",
     type = "BAYES",
     PT = FALSE
   )
@@ -438,7 +438,18 @@ save_objects(objects = "MixtureFortran", path = "../../2019/Objects")
 
 ### Prior
 
+```{r}
+mod_avg <- read_csv(file = "../../2019/2019_preseason_average_GSI_model_stan.csv") %>% 
+  mutate(date = as.Date(date, format = "%d-%B"))
+
+chignik_late_prior_1 <- mod_avg %>%
+  filter(date == as.Date("2019-06-25")) %>% 
+  pull(chignik_late_prop)
+```
+
 ```{r prior_run1}
+chignik_2019_start_prior_weights <- c(1 - chignik_late_prior_1, chignik_late_prior_1)
+
 chignik_1_2019_prior <- 
   Prior.GCL(
     groupvec = groupvec16, 
@@ -474,6 +485,26 @@ dir.create(paste0("../../2019/BAYES/Output/", sillys_strata))
 ```
 
 ## Summarize output
+
+We lost a fish in *BAYES* due to an unrecognized allele (CCCT for One_GPDH2.One_GPDH, evidently no one calls blues for One_GPDH2...). Need to update that in the samples size table.
+
+```{r samples_size_update_run1}
+(
+  sillys_strata_2019_n <- sillys_strata_2019_n %>%
+    mutate(final = sapply(silly, function(x)
+      get(paste0(
+        x, ".gcl"
+      ))$n)) %>%
+    mutate(final = case_when(
+      silly == "SCHIG19_1" ~ as.integer(final - 1),
+      TRUE ~ final
+    ))
+)
+
+save_objects(objects = "sillys_strata_2019_n", path = "../../2019/Objects/")
+write_csv(sillys_strata_2019_n, "../../2019/Tables/sillys_strata_2019_n.csv")
+```
+
 
 ```{r estimates_run1}
 SCHIG19_1_estimates <- 
@@ -574,8 +605,8 @@ write_csv(x = chignik_2019_dates.bayes, path = "../../2019/Estimates tables/Chig
 ```
 
 ```{r model_average_run1}
-mod_avg <- read_csv(file = "../../2019/2019_preseason_average_GSI_model_stan.csv") %>% 
-  mutate(date = as.Date(date, format = "%d-%B"))
+(mod_avg <- read_csv(file = "../../2019/2019_preseason_average_GSI_model_stan.csv") %>% 
+  mutate(date = as.Date(date, format = "%d-%B")))
 ```
 
 
