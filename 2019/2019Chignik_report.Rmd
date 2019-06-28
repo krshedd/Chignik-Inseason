@@ -40,7 +40,7 @@ load("../../2019/chignik_2019_run1.RData")
 
 # 2019 GSI Summary
 
-Summary of genetic stock composition point estimates (%) for each of the `r nrow(sillys_strata_2019_n)` sampling strata to date.
+Summary of genetic stock composition estimates (mean with 90% CI) for each of the `r nrow(sillys_strata_2019_n)` sampling strata to date.
 
 ```{r summary_table, warning=FALSE, message=FALSE}
 sillys_strata_2019_n.df <- as.tibble(cbind(sillys_strata_2019_n, "silly_strata" = rownames(sillys_strata_2019_n))) %>% 
@@ -55,9 +55,10 @@ chignik_2019_dates.bayes %>%
   mutate(dates = ifelse(begin_date == end_date, 
                         format(begin_date, format = "%B %d"), 
                         paste(format(begin_date, format = "%B %d"), format(end_date, format = "%d"), sep = "-"))) %>% 
-  select(strata, repunit, dates, n, mean) %>% 
-  mutate(mean = mean * 100) %>% 
-  spread(repunit, mean) %>% 
+  # mutate(mean = mean * 100) %>% 
+  mutate(stock_comp = paste0(round(mean * 100, 1), " (", round(`5%` * 100, 1), " - ", round(`95%` * 100, 1), ")")) %>% 
+  select(strata, repunit, dates, n, stock_comp) %>% 
+  spread(repunit, stock_comp) %>% 
   kable(digits = 1, format = "latex", booktabs = TRUE, escape = FALSE, linesep = "",
         col.names = c(linebreak(x = c("Strata", "Sample Dates"), align = "l"),
                       linebreak(x = c("Sample Size", "Black Lake", "Chignik Lake"), align = "r"))) %>% 
