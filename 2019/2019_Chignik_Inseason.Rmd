@@ -950,7 +950,7 @@ save.image("../../2019/chignik_2019_run2.RData")
 Find and replace "run3"
 ```{r run3_setup}
 sillys <- "SCHIG19"
-strata <- 2
+strata <- 3
 (sillys_strata <- paste(sillys, strata, sep = "_"))
 ```
 
@@ -984,8 +984,8 @@ PoolCollectionsByDateDF <- function(silly, date.df, loci) {
 
 # Strata dates
 date_2019.df <- tibble(strata = 1:strata, 
-                       begin_date = as.Date(x = c("2019-06-25", "2019-07-01")), 
-                       end_date = as.Date(x = c("2019-06-25", "2019-07-01")))
+                       begin_date = as.Date(x = c("2019-06-25", "2019-07-01", "2019-07-08")), 
+                       end_date = as.Date(x = c("2019-06-25", "2019-07-01", "2019-07-08")))
 
 # Pool
 PoolCollectionsByDateDF(silly = "SCHIG19", date.df = date_2019.df, loci = loci24_RAD)
@@ -1188,7 +1188,7 @@ Create function to view traceplot
 trace_plot.f(estimate_obj = SCHIG19_3_estimates)
 ```
 
-Add to summary
+Add to summary, by resummarizing all to date
 ```{r summary_run3}
 SCHIG19_estimates <- 
   CustomCombineBAYESOutput.GCL(
@@ -1206,7 +1206,7 @@ SCHIG19_estimates <-
 save_objects(objects = "SCHIG19_estimates", path = "../../2019/Estimates objects/")
 ```
 
-Bind everything together
+Bind everything together into a tibble
 ```{r summary_all_year_run3}
 chignik_2019.bayes <- bind_rows(sapply(sillys_strata_2019, function(mix) {
   as_tibble(cbind(SCHIG19_estimates[[mix]], "repunit" = ChignikGroups, silly = mix))
