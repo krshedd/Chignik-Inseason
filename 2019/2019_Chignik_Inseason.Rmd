@@ -38,8 +38,7 @@ Load packages and source GCL functions.
 rm(list = ls())
 
 library(tidyverse)
-library(lubridate)
-library(rubias)
+# library(rubias)
 library(ggthemes)
 library(gridExtra)
 library(ggpubr)
@@ -1252,7 +1251,7 @@ write_csv(x = chignik_2019_dates.bayes, path = "../../2019/Estimates tables/Chig
 
 ```{r model_average_run3}
 (mod_avg <- read_csv(file = "../../2019/2019_preseason_average_GSI_model_stan.csv") %>% 
-  mutate(date = as.Date(date, format = "%d-%B")))
+  mutate(date = as.Date(date, format = "%m/%d/%Y")))
 ```
 
 

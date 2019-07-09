@@ -68,7 +68,7 @@ chignik_2019_dates.bayes %>%
 ```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
 mod_avg %>%
   filter(date > "2019-06-15" & date < "2019-08-10") %>%
-  mutate(black_early_prop = 1 - chignik_late_prop) %>%
+  mutate(black_early_prop = 1 - chignik_late_prop_adfg) %>%
   # mutate(black_prop = 1 - chignik_prop) %>%
   ggplot(aes(x = date, y = black_early_prop * 100)) +
   geom_line(lwd = 3) +
@@ -90,7 +90,7 @@ mod_avg %>%
   scale_x_date(date_labels = "%B %d", date_breaks = "1 week") +
   xlab("Sample Date") +
   ylab("Black Lake (Early Run) % of Sample") +
-  ggtitle("2019 Chignik Sockeye GSI\nwith Average Transition (2010-2018)") +
+  ggtitle("2019 Chignik Sockeye GSI\nwith Average Transition (ADF&G)") +
   theme_classic(base_size = 18) +
   theme(
     plot.title = element_text(hjust = 0.5),
