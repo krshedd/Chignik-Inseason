@@ -13,6 +13,7 @@ date: "`r paste('Reported on:', format(Sys.Date(), format = '%B %d, %Y'), 'at', 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+options(tinytex.verbose = TRUE)
 
 rm(list = ls(all.names = TRUE))
 
@@ -21,7 +22,7 @@ library(lubridate)
 library(knitr)
 library(kableExtra)
 library(ggpubr)
-load("../../2019/chignik_2019_run2.RData")
+load("../../2019/chignik_2019_run3.RData")
 # 
 # date_range.df <- openings_strata.df %>% 
 #   filter(year == 2019, stat_week == sw)
@@ -43,7 +44,7 @@ load("../../2019/chignik_2019_run2.RData")
 Summary of genetic stock composition estimates (mean with 90% CI) for each of the `r nrow(sillys_strata_2019_n)` sampling strata to date.
 
 ```{r summary_table, warning=FALSE, message=FALSE}
-sillys_strata_2019_n.df <- as.tibble(cbind(sillys_strata_2019_n, "silly_strata" = rownames(sillys_strata_2019_n))) %>% 
+sillys_strata_2019_n.df <- as_tibble(cbind(sillys_strata_2019_n, "silly_strata" = rownames(sillys_strata_2019_n))) %>% 
   dplyr::rename(n = final) %>% 
   select(silly, n) %>% 
   mutate(n = as.integer(n))
@@ -67,7 +68,7 @@ chignik_2019_dates.bayes %>%
 
 ```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
 mod_avg %>%
-  filter(date > "2019-06-15" & date < "2019-08-10") %>%
+  filter(date > "2019-06-15" & date < "2019-07-30") %>%
   mutate(black_early_prop = 1 - chignik_late_prop_adfg) %>%
   # mutate(black_prop = 1 - chignik_prop) %>%
   ggplot(aes(x = date, y = black_early_prop * 100)) +

@@ -44,9 +44,9 @@ library(gridExtra)
 library(ggpubr)
 # library(conflicted)
 
-source("~/../R/Functions.GCL.R")
+source("~//R/Functions.GCL.R")
 .username = "krshedd"
-.password = ""
+.password = "kokanee"
 
 
 load_objects(path = "../../2019/Objects")
@@ -946,7 +946,7 @@ save.image("../../2019/chignik_2019_run2.RData")
 
 # Run 3
 
-Find and replace "run3"
+Find and replace "run3" #already done
 ```{r run3_setup}
 sillys <- "SCHIG19"
 strata <- 3
@@ -1246,7 +1246,7 @@ chignik_2019_dates.bayes <- chignik_2019.bayes %>%
   left_join(date_2019.df, by = "strata")
 
 save_objects(objects = "chignik_2019_dates.bayes", path = "../../2019/Estimates objects/")
-write_csv(x = chignik_2019_dates.bayes, path = "../../2019/Estimates tables/Chignik 2018 BAYES Estimates.csv")
+write_csv(x = chignik_2019_dates.bayes, path = "../../2019/Estimates tables/Chignik 2019 BAYES Estimates.csv")
 ```
 
 ```{r model_average_run3}
