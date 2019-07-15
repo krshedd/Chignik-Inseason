@@ -38,13 +38,15 @@ Load packages and source GCL functions.
 rm(list = ls())
 
 library(tidyverse)
-# library(rubias)
+ library(rubias)
 library(ggthemes)
 library(gridExtra)
 library(ggpubr)
 # library(conflicted)
+#library(lubridate) # Chase needed for function yday...
 
-source("~//R/Functions.GCL.R")
+#source("~//R/Functions.GCL.R")
+source("C:/R/Functions.GCL.R") # chase added if require coda install to the CustomeCombineBAYESOutput function, do we want to use pacman or something for all GCLs, to avoid issues in future?
 .username = "krshedd"
 .password = "kokanee"
 
@@ -947,6 +949,8 @@ save.image("../../2019/chignik_2019_run2.RData")
 # Run 3
 
 Find and replace "run3" #already done
+
+### chase started here
 ```{r run3_setup}
 sillys <- "SCHIG19"
 strata <- 3
@@ -1170,7 +1174,7 @@ SCHIG19_3_estimates <-
   CustomCombineBAYESOutput.GCL(
     groupvec = 1:2, 
     groupnames = ChignikGroups, 
-    maindir = "../../2019/BAYES/Output", 
+    maindir = "../../2019/BAYES/Output/", 
     mixvec = sillys_strata,
     prior = "", 
     ext = "RGN", 
