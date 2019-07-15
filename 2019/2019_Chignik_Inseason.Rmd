@@ -31,6 +31,8 @@ This *R Notebook* will perform the following tasks:
 
 This project estimates the stock composition of early- and late-run sockeye salmon through the Chignik weir to estiamte the transition between the two runs in the escapement.
 
+FYI, I used the UW pre-season average transition model from "stan" for Run 1 and 2, then switched to the ADF&G model that I got for Dawn for Run 3-6.
+
 # Setup
 
 Load packages and source GCL functions.
@@ -1272,7 +1274,7 @@ save.image("../../2019/chignik_2019_run3.RData")
 Find and replace "run4"
 ```{r run4_setup}
 sillys <- "SCHIG19"
-strata <- 3
+strata <- 4
 (sillys_strata <- paste(sillys, strata, sep = "_"))
 ```
 
@@ -1478,7 +1480,7 @@ We lost a fish in *BAYES* due to an unrecognized allele (CCCT for One_GPDH2.One_
         x, ".gcl"
       ))$n)) %>%
     mutate(final = case_when(
-      silly %in% c("SCHIG19_1", "SCHIG19_2") ~ as.integer(final - 1),
+      silly %in% c("SCHIG19_1", "SCHIG19_2", "SCHIG19_4") ~ as.integer(final - 1),
       TRUE ~ final
     ))
 )
@@ -1502,12 +1504,12 @@ SCHIG19_4_estimates <-
     alpha = 0.1, 
     PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
 
-save_objects(objects = "SCHIG19_3_estimates", path = "../../2019/Estimates objects/")
+save_objects(objects = "SCHIG19_4_estimates", path = "../../2019/Estimates objects/")
 ```
 
 Create function to view traceplot
 ```{r traceplot_run4}
-trace_plot.f(estimate_obj = SCHIG19_3_estimates)
+trace_plot.f(estimate_obj = SCHIG19_4_estimates)
 ```
 
 Add to summary, by resummarizing all to date
