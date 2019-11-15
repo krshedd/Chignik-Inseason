@@ -770,11 +770,11 @@ logistic <- function(x, kappa, gamma) {
   return(p)
 }
 
-birch_wls_logistic_coef <- read_csv("logistic_coefficients.csv")
+birch_wls_logistic_coef <- read_csv("../2019/logistic_coefficients.csv")
 
 birch_wls_logistic_coef <- birch_wls_logistic_coef %>% 
-  mutate(color = c(colorRampPalette(c("skyblue", "black"))(8), "black")) %>% 
-  mutate(lty = c(1:8, 1))
+  mutate(color = c(colorRampPalette(c("skyblue", "black"))(8), "blue", "black")) %>% 
+  mutate(lty = c(1:8, 1, 1))
 
 
 # plot points with curve
@@ -820,26 +820,30 @@ ggsave(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2019/Figure
 # yr2017 <- as.numeric(readClipboard())  # 5/25-8/8 from Chignik escapement 2017.xlsx
 
 # plot all curves
-png(filename = "V:/Presentations/Regional/4_Westward/Sockeye/CRAA/2019/Figures/logistic_regression_summary.png", width = 7, height = 6.5, units = "in", res = 400)
+png(filename = "V:/Documents/4_Westward/Sockeye/SK 2018-2019 Chignik Inseason/Final Report/logistic_regression_summary.png", width = 7, height = 6.5, units = "in", res = 400)
 
 par(mar=c(3.1, 4.6, 1.1, 1.1))
 par(family="sans")
-par(bg=rgb(red=31,green=73,blue=125,maxColorValue=255))
+# par(bg=rgb(red=31,green=73,blue=125,maxColorValue=255))
+par(bg="white")
 
 plot(-5,cex=1.5,xlim=c(1,78),ylim=c(0,1),bty="n",axes=FALSE,cex.lab=2,xlab="",ylab="",col.lab=1)
-mtext(text = "Date", side = 1, line = 2, cex = 2, col = "white")
-mtext(text = "Proportion Black Lake", side = 2, line = 3, cex = 2, col = "white")
-rect(xleft=29,ybottom=0,xright=69,ytop=1,col="white")
-axis(side=1,at=seq(1,78,by=11),labels=format(seq(from = as.Date("2018-05-25"), by = 11, length = 8), format = "%m/%d"),cex.axis=1.3,pos=0,lwd=4,col="white",col.axis="white")
-axis(side=2,cex.axis=1.5,lwd=4,col="white",col.axis="white")
+mtext(text = "Date", side = 1, line = 2, cex = 2, col = "black")
+mtext(text = "Proportion Black Lake", side = 2, line = 3, cex = 2, col = "black")
+rect(xleft=29,ybottom=0,xright=69,ytop=1,col="grey80")
+axis(side=1,at=seq(1,78,by=11),labels=format(seq(from = as.Date("2018-05-25"), by = 11, length = 8), format = "%m/%d"),cex.axis=1.3,pos=0,lwd=4,col="black",col.axis="black")
+axis(side=2,cex.axis=1.5,lwd=4,col="black",col.axis="black")
 apply(birch_wls_logistic_coef, 1, function(yr) {
   lines(x = 1:78, y = 1-logistic(x = 1:78, kappa = as.numeric(yr[2]), gamma = as.numeric(yr[3])), type = "l", lwd = 3, col = yr[4], lty = as.numeric(yr[5]))
 } )
 yr2 <- birch_wls_logistic_coef[9, ]
-lines(x = 1:78, y = 1-logistic(x = 1:78, kappa = as.numeric(yr2[2]), gamma = as.numeric(yr2[3])), type = "l", lwd = 10, col = 1, lty = 1)  # y = 1-logistic(x = 1:78, kappa = as.numeric(yr2[2]), gamma = as.numeric(yr2[3]))
+lines(x = 1:78, y = 1-logistic(x = 1:78, kappa = as.numeric(yr2[2]), gamma = as.numeric(yr2[3])), type = "l", lwd = 10, col = 4, lty = 1)  # y = 1-logistic(x = 1:78, kappa = as.numeric(yr2[2]), gamma = as.numeric(yr2[3]))
 
-abline(h=c(0),lwd=4,col="white")
-legend(x=0,y=1,bty="n",legend=2010:2018,lwd=c(rep(4, 8), 10),col=birch_wls_logistic_coef$color, lty = birch_wls_logistic_coef$lty,cex=1.5,text.col="white")
+yr3 <- birch_wls_logistic_coef[10, ]
+lines(x = 1:78, y = 1-logistic(x = 1:78, kappa = as.numeric(yr3[2]), gamma = as.numeric(yr3[3])), type = "l", lwd = 10, col = 1, lty = 1)  # y = 1-logistic(x = 1:78, kappa = as.numeric(yr3[2]), gamma = as.numeric(yr3[3]))
+
+abline(h=c(0),lwd=4,col="black")
+legend(x=0,y=1,bty="n",legend=2010:2019,lwd=c(rep(4, 8), 10, 10),col=birch_wls_logistic_coef$color, lty = birch_wls_logistic_coef$lty, cex=1.5, text.col="black")
 
 dev.off()
 
