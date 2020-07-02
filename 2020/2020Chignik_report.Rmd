@@ -1,0 +1,101 @@
+---
+title: "Chignik Weir"
+subtitle: "Chignik Sockeye Salmon Stock Composition Summary"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+geometry: margin=0.5in
+date: "`r paste('Reported on:', format(Sys.Date(), format = '%B %d, %Y'), 'at', format(Sys.time(), format = '%I:%M %p'))`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+options(tinytex.verbose = TRUE)
+
+rm(list = ls(all.names = TRUE))
+
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(kableExtra)
+library(ggpubr)
+load("../../2020/chignik_2020_run1.RData")
+# 
+# date_range.df <- openings_strata.df %>% 
+#   filter(year == 2019, stat_week == sw)
+# strata_date_range <- ifelse(month(date_range.df$begin_date) == month(date_range.df$end_date),
+#                             paste(format(date_range.df$begin_date, format = "%B %d"), 
+#                                   format(date_range.df$end_date, format = "%d, %Y"), sep = "-"),
+#                             paste(format(date_range.df$begin_date, format = "%B %d"), 
+#                                   format(date_range.df$end_date, format = "%B %d, %Y"), sep = "-"))
+# 
+# n_samp <- ASL.df %>% 
+#   filter(Year == 2019, `Stat Week` == sw) %>% 
+#   n_distinct()
+# n_geno <- get(paste0("sillys_strata_2019_SW", sw, "_n"))[sillys_strata, "Genotyped"]
+# n_final <- get(paste0("sillys_strata_2019_SW", sw, "_n"))[sillys_strata, "Final"]
+```
+
+# 2020 GSI Summary
+
+Summary of genetic stock composition estimates (mean with 90% CI) for each of the `r nrow(sillys_strata_2020_n)` sampling strata to date.
+
+```{r summary_table, warning=FALSE, message=FALSE}
+sillys_strata_2020_n.df <- as_tibble(cbind(sillys_strata_2020_n, "silly_strata" = rownames(sillys_strata_2020_n))) %>% 
+  dplyr::rename(n = final) %>% 
+  select(silly, n) %>% 
+  mutate(n = as.integer(n))
+
+options(knitr.kable.NA = '')
+chignik_2020_dates.bayes %>% 
+  unite(col = silly_strata, c("silly", "strata"), sep = "_", remove = FALSE) %>% 
+  left_join(sillys_strata_2020_n.df, by = c("silly_strata" = "silly")) %>% 
+  mutate(dates = ifelse(begin_date == end_date, 
+                        format(begin_date, format = "%B %d"), 
+                        paste(format(begin_date, format = "%B %d"), format(end_date, format = "%d"), sep = "-"))) %>% 
+  # mutate(mean = mean * 100) %>% 
+  mutate(stock_comp = paste0(round(mean * 100, 1), " (", round(`5%` * 100, 1), " - ", round(`95%` * 100, 1), ")")) %>% 
+  select(strata, repunit, dates, n, stock_comp) %>% 
+  spread(repunit, stock_comp) %>% 
+  kable(digits = 1, format = "latex", booktabs = TRUE, escape = FALSE, linesep = "",
+        col.names = c(linebreak(x = c("Strata", "Sample Dates"), align = "l"),
+                      linebreak(x = c("Sample Size", "Black Lake", "Chignik Lake"), align = "r"))) %>% 
+  kable_styling(position = "center")
+```
+
+```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
+mod_avg %>%
+  filter(date > "2020-06-15" & date < "2020-07-30") %>%
+  mutate(black_early_prop = 1 - chignik_late_prop_adfg) %>%
+  # mutate(black_prop = 1 - chignik_prop) %>%
+  ggplot(aes(x = date, y = black_early_prop * 100)) +
+  geom_line(lwd = 3) +
+  # geom_line(aes(x = date, y = black_prop * 100), lwd = 3, colour = "grey50") +
+  geom_point(
+    data = filter(chignik_2020_dates.bayes, repunit == "Black Lake"),
+    aes(x = date, y = mean * 100),
+    colour = "red",
+    cex = 5
+  ) +
+  geom_errorbar(
+    data = filter(chignik_2020_dates.bayes, repunit == "Black Lake"),
+    aes(x = date, ymin = `5%` * 100, ymax = `95%` * 100),
+    inherit.aes = FALSE,
+    colour = "red",
+    lwd = 1.5,
+    width = 3
+  ) +
+  scale_x_date(date_labels = "%B %d", date_breaks = "1 week") +
+  xlab("Sample Date") +
+  ylab("Black Lake (Early Run) % of Sample") +
+  ggtitle("2020 Chignik Sockeye GSI\nwith Average Transition (ADF&G)") +
+  theme_classic(base_size = 18) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+```
