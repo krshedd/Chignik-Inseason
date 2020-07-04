@@ -330,12 +330,14 @@ save_objects(objects = "MixtureFortran", path = "../../2020/Objects")
 ### Prior
 
 ```{r}
-mod_avg <- read_csv(file = "../../2020/2020_preseason_average_GSI_model_stan.csv") %>% 
-  mutate(date = as.Date(date, format = "%d-%B"))
+mod_avg <- read_csv(file = "../../2020/2020_preseason_average_GSI_model.csv")
+
+mod_avg <- mod_avg %>% 
+  mutate(date = as.Date(date, format = "%m/%d/%Y"))
 
 chignik_late_prior_1 <- mod_avg %>%
   filter(date == as.Date("2020-06-30")) %>% 
-  pull(chignik_late_prop)
+  pull(chignik_late_prop_adfg)
 ```
 
 ```{r prior_run1}
@@ -377,7 +379,7 @@ dir.create(paste0("../../2020/BAYES/Output/", sillys_strata))
 
 ## Summarize output
 
-We lost a fish in *BAYES* due to an unrecognized allele (CCCT for One_GPDH2.One_GPDH, evidently no one calls blues for One_GPDH2...). Need to update that in the samples size table.
+We lost two fish in *BAYES* due to an unrecognized allele (CCCT for One_GPDH2.One_GPDH, evidently no one calls blues for One_GPDH2...). Need to update that in the samples size table.
 
 ```{r samples_size_update_run1}
 (
@@ -387,7 +389,7 @@ We lost a fish in *BAYES* due to an unrecognized allele (CCCT for One_GPDH2.One_
         x, ".gcl"
       ))$n)) %>%
     mutate(final = case_when(
-      silly == "SCHIG19_1" ~ as.integer(final - 1),
+      silly == "SCHIG20_1" ~ as.integer(final - 2),
       TRUE ~ final
     ))
 )
@@ -496,8 +498,8 @@ write_csv(x = chignik_2020_dates.bayes, path = "../../2020/Estimates tables/Chig
 ```
 
 ```{r model_average_run1}
-(mod_avg <- read_csv(file = "../../2020/2020_preseason_average_GSI_model_stan.csv") %>% 
-  mutate(date = as.Date(date, format = "%d-%B")))
+(mod_avg <- read_csv(file = "../../2020/2020_preseason_average_GSI_model.csv") %>% 
+  mutate(date = as.Date(date, format = "%m/%d/%Y")))
 ```
 
 
@@ -510,6 +512,47 @@ save_objects(objects = "chignik_2_2020_prior", path = "../../2020/Objects/")
 ## Save
 ```{r save_run1}
 save.image("../../2020/chignik_2020_run1.RData")
+```
+
+## Individual Assignment
+
+Need to remove the two individuals with unrecognized alleles, otherwise the function won't work.
+```{r}
+ids_2_remove <- SCHIG20_1.gcl$attributes$FK_FISH_ID[c(60, 145)]
+
+RemoveIDs.GCL(silly = "SCHIG20_1", IDs = ids_2_remove)
+
+SCHIG20_1.gcl$n
+```
+
+First 96 fish were from 6/29, next 94 were from 7/1.
+```{r}
+(
+  chignik_1_2020_IA <-
+    IndividualAssignmentSummary.GCL(
+      GroupNames = ChignikGroups,
+      groupvec = groupvec16,
+      mixnames = sillys_strata_2020,
+      BAYESoutputDir = "../../2020/BAYES/Output/",
+      nchains = 5,
+      nreps = 40000,
+      burn = 0.5,
+      thin = 100
+    )
+)
+```
+
+Most likely group based on sample date.
+```{r}
+chignik_1_2020_IA$SCHIG20_1 %>% 
+  as_tibble(rownames = "fish_id") %>% 
+  mutate(fish_id = as.numeric(fish_id)) %>% 
+  mutate(group = case_when(`Black Lake` > `Chignik Lake` ~ "early",
+                           TRUE ~ "late")) %>% 
+  mutate(date = case_when(fish_id < 97 ~ "6/19",
+                          TRUE ~ "7/01")) %>% 
+  count(group, date) %>% 
+  spread(date, n)
 ```
 
 
