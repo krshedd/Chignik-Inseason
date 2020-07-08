@@ -22,7 +22,7 @@ library(lubridate)
 library(knitr)
 library(kableExtra)
 library(ggpubr)
-load("../../2020/chignik_2020_run1.RData")
+load("../../2020/chignik_2020_run2.RData")
 # 
 # date_range.df <- openings_strata.df %>% 
 #   filter(year == 2019, stat_week == sw)
