@@ -22,7 +22,7 @@ library(lubridate)
 library(knitr)
 library(kableExtra)
 library(ggpubr)
-load("../../2020/chignik_2020_run2.RData")
+load("../../2020/chignik_2020_run4.RData")
 # 
 # date_range.df <- openings_strata.df %>% 
 #   filter(year == 2019, stat_week == sw)
@@ -66,7 +66,7 @@ chignik_2020_dates.bayes %>%
   kable_styling(position = "center")
 ```
 
-```{r stock_comp_figure, fig.height=6.5, fig.width=7.5, fig.align="center"}
+```{r stock_comp_figure, fig.height=6.3, fig.width=7.5, fig.align="center"}
 mod_avg %>%
   filter(date > "2020-06-15" & date < "2020-07-30") %>%
   mutate(black_early_prop = 1 - chignik_late_prop_adfg) %>%
