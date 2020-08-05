@@ -1563,8 +1563,8 @@ PoolCollectionsByDateDF <- function(silly, date.df, loci) {
 
 # Strata dates
 date_2020.df <- tibble(strata = 1:strata, 
-                       begin_date = as.Date(x = c("2020-06-29", "2020-07-06", "2020-07-11", "2020-07-17", "2020-07-22")), 
-                       end_date = as.Date(x = c("2020-07-01", "2020-07-06", "2020-07-12", "2020-07-17", "2020-07-22")))
+                       begin_date = as.Date(x = c("2020-06-29", "2020-07-06", "2020-07-11", "2020-07-17", "2020-07-23")), 
+                       end_date = as.Date(x = c("2020-07-01", "2020-07-06", "2020-07-12", "2020-07-17", "2020-07-23")))
 
 # Pool
 PoolCollectionsByDateDF(silly = sillys, date.df = date_2020.df, loci = loci24_RAD)
@@ -1845,5 +1845,321 @@ save_objects(objects = "chignik_6_2020_prior", path = "../../2020/Objects/")
 ## Save
 ```{r save_run5}
 save.image("../../2020/chignik_2020_run5.RData")
+```
+
+# Run 6
+
+Find and replace "run6"
+```{r run6_setup}
+sillys <- "SCHIG20"
+strata <- 6
+(sillys_strata <- paste(sillys, strata, sep = "_"))
+```
+
+## Read genotypes
+
+Sample size should be multiples of 190.
+```{r run6_read_genotypes}
+LOKI2R.GCL(sillyvec = sillys, username = .username, password = .password)
+save_sillys(sillyvec = sillys, path = "../../2020/Raw genotypes/")
+
+sapply(sillys, function(silly) {get(paste0(silly, ".gcl"))$n} )
+sapply(sillys, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
+```
+
+## Create strata
+
+```{r run6_strata}
+# Function to pool by sample date
+PoolCollectionsByDateDF <- function(silly, date.df, loci) {
+  sapply(silly, function(mix) {
+    mix.dates <- unique(as.Date(get(paste(mix, ".gcl", sep = ''))$attributes$CAPTURE_DATE))
+    by(data = date.df, INDICES = date.df$strata, function(x) {
+      IDs <- AttributesToIDs.GCL(silly = mix, attribute = "CAPTURE_DATE", matching = mix.dates[mix.dates >= x$begin_date & mix.dates <= x$end_date])
+      IDs <- list(na.omit(IDs))
+      names(IDs) <- mix
+      PoolCollections.GCL(collections = mix, loci = loci, IDs = IDs, newname = paste(mix, as.character(x$strata), sep = "_"))
+      list("First Last Fish" = range(as.numeric(unlist(IDs))), "n" = get(paste(mix, "_", as.character(x$strata), ".gcl", sep = ''))$n)
+    } )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+}
+
+# Strata dates
+date_2020.df <- tibble(strata = 1:strata, 
+                       begin_date = as.Date(x = c("2020-06-29", "2020-07-06", "2020-07-11", "2020-07-17", "2020-07-23", "2020-08-01")), 
+                       end_date = as.Date(x = c("2020-07-01", "2020-07-06", "2020-07-12", "2020-07-17", "2020-07-23", "2020-08-01")))
+
+# Pool
+PoolCollectionsByDateDF(silly = sillys, date.df = date_2020.df, loci = loci24_RAD)
+
+# Save
+sillys_strata_2020 <- setdiff(
+  str_replace(string = objects(pattern = "\\.gcl"), 
+              pattern = "\\.gcl", 
+              replacement = ''),
+  sillys)
+save_objects(objects = "sillys_strata_2020", path = "../../2020/Objects")
+save_sillys(sillyvec = sillys_strata, path = "../../2020/Raw genotypes/Strata/")
+
+# Verify
+sapply(sillys_strata, function(silly) {table(get(paste0(silly, ".gcl"))$attributes$CAPTURE_DATE, useNA = "always")} )
+```
+
+
+## Data QA
+
+Check loci failure rate.
+```{r run6_QA_loci}
+## Get sample size by locus
+original_sillys_strata_2020_run6_n_locus <- SampSizeByLocus.GCL(sillyvec = sillys_strata, loci = loci24_RAD)
+min(original_sillys_strata_2020_run6_n_locus)
+round(apply(original_sillys_strata_2020_run6_n_locus, 1, function(locus) {min(locus) / max(locus)}), 2)
+
+original_sillys_strata_percent_locus <- apply(original_sillys_strata_2020_run6_n_locus, 1, function(row) {row / max(row)} )
+which(apply(original_sillys_strata_percent_locus, 2, min) < 0.8)  # no re-runs!
+
+# Genotpying percentage by locus and strata
+require(lattice)
+new.colors <- colorRampPalette(c("black", "white"))
+levelplot(t(original_sillys_strata_percent_locus), 
+          col.regions = new.colors, 
+          at = seq(from = 0, to = 1, length.out = 100), 
+          main = "% Genotyped", xlab = "SILLY", ylab = "Locus", 
+          scales = list(x = list(rot = 90)), 
+          aspect = "fill")  # aspect = "iso" will make squares
+```
+
+
+Perform standard data QA processes to filter out untrustworthy genotypes.
+```{r qa_setup_2020_run6}
+sillys_strata_2020_n <- tibble(silly = sillys_strata_2020) %>% 
+  mutate(genotyped = sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Missing
+
+Remove individuals missing >=20% of genotypes (i.e. the 80% rule).
+```{r qa_missing_2020_run6}
+sillys_strata_2020_MissLoci <- RemoveIndMissLoci.GCL(sillyvec = sillys_strata_2020, proportion = 0.8)
+save_objects("sillys_strata_2020_MissLoci", "../../2020/Objects/")
+
+# show individuals removed
+sillys_strata_2020_MissLoci[sillys_strata_2020_MissLoci != "None"]
+
+sillys_strata_2020_n <- sillys_strata_2020_n %>% 
+  mutate(missing = genotyped - sapply(silly, function(x) get(paste0(x, ".gcl"))$n))
+```
+
+### Duplicate
+
+Remove duplicate individuals within the same collection. Typically we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other.
+```{r qa_duplicate_2020_run6}
+sillys_strata_2020_DuplicateCheck95MinProportion <-
+  CheckDupWithinSilly.GCL(
+    sillyvec = sillys_strata_2020,
+    loci = loci24_RAD,
+    quantile = NULL,
+    minproportion = 0.95
+  )
+
+(sillys_strata_2020_DuplicateCheckReportSummary <-
+  sapply(sillys_strata_2020, function(x)
+    sillys_strata_2020_DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE))
+
+sillys_strata_2020_RemovedDups <-
+  RemoveDups.GCL(sillys_strata_2020_DuplicateCheck95MinProportion)
+
+save_objects(
+  c("sillys_strata_2020_DuplicateCheckReportSummary", "sillys_strata_2020_RemovedDups"),
+  "../../2020/Objects/"
+)
+
+# show individuals removed
+sillys_strata_2020_RemovedDups[sillys_strata_2020_RemovedDups != "Nothing Removed"]
+
+sillys_strata_2020_n <- sillys_strata_2020_n %>%
+  mutate(duplicate = genotyped - missing - sapply(silly, function(x)
+    get(paste0(x, ".gcl"))$n))
+```
+
+### Final
+
+How many fish did we end up with in our final baseline? Save final genotypes.
+```{r qa_final_2020_run6}
+(sillys_strata_2020_n <- sillys_strata_2020_n %>% 
+  mutate(final = sapply(silly, function(x) get(paste0(x, ".gcl"))$n)))
+
+save_objects(objects = "sillys_strata_2020_n", path = "../../2020/Objects/")
+write_csv(sillys_strata_2020_n, "../../2020/Tables/sillys_strata_2020_n.csv")
+```
+
+
+## Combine loci
+
+Need to combine GDPH and MHC markers
+```{r combine_loci_run6}
+CombineLoci.GCL(sillyvec = sillys_strata, markerset = c("One_MHC2_251", "One_MHC2_190"), delim = ".", update = TRUE)
+CombineLoci.GCL(sillyvec = sillys_strata, markerset = c("One_GPDH2", "One_GPDH"), delim=".", update = TRUE)
+```
+
+
+## BAYES
+
+### Mixture format
+
+```{r mix_run6}
+MixtureFortran <- 
+  CreateMixture.GCL(
+    sillys = sillys_strata, 
+    loci = loci22_RAD, 
+    IDs = NULL, 
+    mixname = sillys_strata,
+    dir = "../../2020/BAYES/Mixture",
+    type = "BAYES",
+    PT = FALSE
+  )
+save_objects(objects = "MixtureFortran", path = "../../2020/Objects")
+```
+
+### Control files
+
+```{r control_run6}
+CreateControlFile.GCL(
+  sillyvec = Chignik16pops, 
+  loci = loci22_RAD, 
+  mixname = sillys_strata, 
+  basename = "Chignik16pops22RAD", 
+  suffix = "", 
+  nreps = 40000, 
+  nchains = 5,
+  groupvec = groupvec16, 
+  priorvec = chignik_6_2020_prior, 
+  initmat = Inits_16pops, 
+  dir = "../../2020/BAYES/Control",
+  seeds = WASSIPSockeyeSeeds, 
+  thin = c(1, 1, 100),
+  mixfortran = MixtureFortran, 
+  basefortran = BaselineFortran, 
+  switches = "F T F T T T F"
+) 
+
+dir.create(paste0("../../2020/BAYES/Output/", sillys_strata))
+```
+
+## Summarize output
+
+We lost two fish in *BAYES* from run 1  and one in run 3 due to an unrecognized allele (CCCT for One_GPDH2.One_GPDH, evidently no one calls blues for One_GPDH2...). Need to update that in the samples size table.
+
+```{r samples_size_update_run6}
+(
+  sillys_strata_2020_n <- sillys_strata_2020_n %>%
+    mutate(final = sapply(silly, function(x)
+      get(paste0(
+        x, ".gcl"
+      ))$n)) %>%
+    mutate(final = case_when(
+      silly == "SCHIG20_1" ~ as.integer(final - 2),
+      silly == "SCHIG20_3" ~ as.integer(final - 1),
+      TRUE ~ final
+    ))
+)
+
+save_objects(objects = "sillys_strata_2020_n", path = "../../2020/Objects/")
+write_csv(sillys_strata_2020_n, "../../2020/Tables/sillys_strata_2020_n.csv")
+```
+
+
+```{r estimates_run6}
+SCHIG20_6_estimates <- 
+  CustomCombineBAYESOutput.GCL(
+    groupvec = 1:2, 
+    groupnames = ChignikGroups, 
+    maindir = "../../2020/BAYES/Output", 
+    mixvec = sillys_strata,
+    prior = "", 
+    ext = "RGN", 
+    nchains = 5, 
+    burn = 0.5, 
+    alpha = 0.1, 
+    PosteriorOutput = TRUE)  # Yes, I want the Posterior so I can look at trace plot.
+
+save_objects(objects = "SCHIG20_6_estimates", path = "../../2020/Estimates objects/")
+```
+
+Create function to view traceplot
+```{r traceplot_run6}
+trace_plot.f(estimate_obj = SCHIG20_6_estimates)
+```
+
+Add to summary
+```{r summary_run6}
+SCHIG20_estimates <- 
+  CustomCombineBAYESOutput.GCL(
+    groupvec = 1:2, 
+    groupnames = ChignikGroups, 
+    maindir = "../../2020/BAYES/Output", 
+    mixvec = sillys_strata_2020,
+    prior = "", 
+    ext = "RGN", 
+    nchains = 5, 
+    burn = 0.5, 
+    alpha = 0.1, 
+    PosteriorOutput = FALSE)
+
+save_objects(objects = "SCHIG20_estimates", path = "../../2020/Estimates objects/")
+```
+
+Bind everything together
+```{r summary_all_year_run6}
+chignik_2020.bayes <- bind_rows(sapply(sillys_strata_2020, function(mix) {
+  as_tibble(cbind(SCHIG20_estimates[[mix]], "repunit" = ChignikGroups, silly = mix))
+}, simplify = FALSE))
+```
+
+Get sample sizes and dates for each strata to calculate average date
+```{r attributes_run6}
+SCHIG20_attributes <-
+  as_tibble(bind_rows(lapply(sillys_strata_2020, function(silly) {
+    cbind(get(paste0(silly, ".gcl"))$attributes, "new_silly" = silly)
+  })))
+
+date_avg <- SCHIG20_attributes %>% 
+  separate(col = new_silly, into = c("new_silly", "strata"), sep = "_") %>% 
+  mutate(strata = as.integer(strata)) %>% 
+  mutate(julian = yday(CAPTURE_DATE)) %>% 
+  group_by(strata) %>%
+  summarize(avg_date = mean(julian))
+```
+
+Final summary with dates
+```{r summary_all_year_dates_run6}
+chignik_2020_dates.bayes <- chignik_2020.bayes %>% 
+  select(silly, repunit, mean, sd, median, `5%`, `95%`, `P=0`, GR) %>% 
+  separate(col = silly, into = c("silly", "strata"), sep = "_") %>% 
+  mutate(strata = as.integer(strata)) %>% 
+  mutate(repunit = factor(x = repunit, levels = ChignikGroups)) %>% 
+  mutate(mean = as.double(mean)) %>% 
+  mutate(sd = as.double(sd)) %>% 
+  mutate(median = as.double(median)) %>% 
+  mutate(`5%` = as.double(`5%`)) %>% 
+  mutate(`95%` = as.double(`95%`)) %>% 
+  mutate(`P=0` = as.double(`P=0`)) %>% 
+  mutate(GR = as.double(GR)) %>% 
+  left_join(date_avg, by = "strata") %>% 
+  mutate(date = as.Date(avg_date, origin = "2019-12-31")) %>% 
+  left_join(date_2020.df, by = "strata")
+
+save_objects(objects = "chignik_2020_dates.bayes", path = "../../2020/Estimates objects/")
+write_csv(x = chignik_2020_dates.bayes, path = "../../2020/Estimates tables/Chignik 2020 BAYES Estimates.csv")
+```
+
+```{r model_average_run6}
+(mod_avg <- read_csv(file = "../../2020/2020_preseason_average_GSI_model.csv") %>% 
+  mutate(date = as.Date(date, format = "%m/%d/%Y")))
+```
+
+## Save
+```{r save_run6}
+save.image("../../2020/chignik_2020_run6.RData")
 ```
 
