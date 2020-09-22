@@ -1,0 +1,232 @@
+---
+title: "Chignik Sockeye 2019-2020 Re-analysis with 2020 Baseline"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Purpose
+
+This inseason analysis serves two purposes:  
+
+  1) Re-analyze 2019-2020 inseason samples against the *new* baseline (2020) with 16 populations and the 2 new RAD loci,
+  2) Compare the stock composition estimates to the previous baseline (2018).
+  
+The *BAYES* baseline update was described in `../../../Baseline/2020/`
+
+This *R Notebook* will perform the following tasks:  
+
+  * Re-create 2019-2020 *BAYES* control files for 2020 baseline "Chignik16pops22RAD_develop"
+  * Summarize stock composition estimates
+  * Compare stock composition estimates to the results from the 2018 baseline
+
+# Background
+
+This project estimates the stock composition of early- and late-run sockeye salmon through the Chignik weir to estimate the transition between the two runs in the escapement.
+
+At the end of 2018 (after that year's inseason), we did a baseline update to include 2 of Wes Larson's "Islands of Divergence" RAD SNPs and to revisit previous pooling. This baseline update was largely done by Chase as his first baseline, and by accident fish missing 20% or more loci were not removed from the 2018 baseline that was used for 2019-2020 inseason. I (Kyle) noticed this error while using the Chignik baseline to test the BAYES functions in GCL 2.0 and redid the baseline with those new 2.0 functions. The main difference in this *new* 2020 baseline is that it has 17 fewer fish due to those missing fish and some additional duplicates found due to how the new functions work (uses *rubias* dupcheck).
+
+*NOTE* This notebook is using the **new** GCL 2.0 functions from the  `develop` branch!!!
+
+# Setup
+
+Load packages and source GCL functions.
+```{r load_source}
+rm(list = ls())
+
+library(tidyverse)
+library(lubridate)
+library(rubias)
+
+source("~/../R/Functions.GCL.R")
+
+load_objects(path = "../../2019/Objects")
+load_objects(path = "../../2020/Objects")
+load_objects(path = "../../../Baseline/2020/Objects_new_functions_develop/")
+# load_objects(path = "../../2020/rubias/baseline")
+```
+
+# Re-create Control files
+
+## Directories
+
+Create a new directory for the 2020 baseline *BAYES* control files
+```{r}
+dir.create("../../2019/BAYES/Control_2020baseline_develop")
+dir.create("../../2020/BAYES/Control_2020baseline_develop")
+```
+
+## Testing
+
+Read in a control file
+```{r}
+(x <- read.table(file = "../../2019/BAYES/Control/Done/SCHIG19_1Chain1.ctl", sep = "\n"))
+```
+
+Update second row with new baseline file name
+```{r}
+x[2, 1] <- "Chignik16pops22RAD_develop.bse"
+x
+```
+
+Write out
+```{r}
+write.table(
+  x = x,
+  file = "../../2019/BAYES/Control_2020baseline_develop/SCHIG19_1Chain1.ctl",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = FALSE
+)
+```
+
+Comparing this updated control file to the OG, it looks like this worked! Now time to create a function to whip through them all!
+
+## Function
+
+### 2019
+
+```{r}
+og_dir <- "../../2019/BAYES/Control/Done/"
+new_dir <- "../../2019/BAYES/Control_2020baseline_develop/"
+filename <- list.files(path = og_dir)
+
+sapply(filename, function(ctrl) {
+  x <- read.table(file = paste0(og_dir, ctrl), sep = "\n")
+  x[2, 1] <- "Chignik16pops22RAD_develop.bse"
+  write.table(
+    x = x,
+    file = paste0(new_dir, ctrl),
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = FALSE
+  )
+})
+```
+
+### 2020
+
+```{r}
+og_dir <- "../../2020/BAYES/Control/Done/"
+new_dir <- "../../2020/BAYES/Control_2020baseline_develop/"
+filename <- list.files(path = og_dir)
+
+sapply(filename, function(ctrl) {
+  x <- read.table(file = paste0(og_dir, ctrl), sep = "\n")
+  x[2, 1] <- "Chignik16pops22RAD_develop.bse"
+  write.table(
+    x = x,
+    file = paste0(new_dir, ctrl),
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = FALSE
+  )
+})
+```
+
+# Re-summarize
+
+## 2018 Baseline
+
+### 2019
+
+```{r}
+load_objects(pattern = "chignik_2019_dates.bayes", path = "../../2019/Estimates objects/")
+chignik_2019_dates.bayes
+```
+
+### 2020
+
+```{r}
+load_objects(pattern = "chignik_2020_dates.bayes", path = "../../2020/Estimates objects/")
+chignik_2020_dates.bayes
+```
+
+## 2020 Baseline
+
+### 2019
+
+```{r}
+SCHIG19_estimates_2020baseline <- 
+  CustomCombineBAYESOutput.GCL(
+    groupvec = 1:2, 
+    groupnames = ChignikGroups, 
+    maindir = "../../2019/BAYES/Output_2020baseline_develop/", 
+    mixvec = sillys_strata_2019,
+    prior = "", 
+    ext = "RGN", 
+    nchains = 5, 
+    burn = 0.5, 
+    alpha = 0.1, 
+    PosteriorOutput = FALSE)
+```
+
+Bind everything together
+```{r summary_all_year_run1}
+(chignik_2019.bayes_2020baseline <-
+   bind_rows(sapply(sillys_strata_2019, function(mix) {
+     as_tibble(cbind(SCHIG19_estimates_2020baseline[[mix]], "repunit" = ChignikGroups, silly = mix))
+   }, simplify = FALSE)))
+```
+``
+
+### Compare
+
+```{r}
+chignik_2019.bayes_2020baseline %>% 
+  filter(repunit == "Black Lake") %>% 
+  select(silly, mean, `5%`, `95%`)
+```
+
+```{r}
+chignik_2019_dates.bayes %>% 
+  filter(repunit == "Black Lake") %>% 
+  select(silly, strata, mean, `5%`, `95%`)
+```
+
+### 2020
+
+```{r}
+SCHIG20_estimates_2020baseline <- 
+  CustomCombineBAYESOutput.GCL(
+    groupvec = 1:2, 
+    groupnames = ChignikGroups, 
+    maindir = "../../2020/BAYES/Output_2020baseline_develop/", 
+    mixvec = sillys_strata_2020,
+    prior = "", 
+    ext = "RGN", 
+    nchains = 5, 
+    burn = 0.5, 
+    alpha = 0.1, 
+    PosteriorOutput = FALSE)
+```
+
+Bind everything together
+```{r}
+(chignik_2020.bayes_2020baseline <-
+   bind_rows(sapply(sillys_strata_2020, function(mix) {
+     as_tibble(cbind(SCHIG20_estimates_2020baseline[[mix]], "repunit" = ChignikGroups, silly = mix))
+   }, simplify = FALSE)))
+```
+``
+
+### Compare
+
+```{r}
+chignik_2020.bayes_2020baseline %>% 
+  filter(repunit == "Black Lake") %>% 
+  select(silly, mean, `5%`, `95%`)
+```
+
+```{r}
+chignik_2020_dates.bayes %>% 
+  filter(repunit == "Black Lake") %>% 
+  select(silly, strata, mean, `5%`, `95%`)
+```
+
+# Conclusions
+
+In conclusion, only 2 out of 12 mixtures moved by 1%, all others were less. Great news, the "new" 2020 baseline isn't too different than what we've been using for the past 2 years (2019/2020), no need to freak out and update Westward Region Staff, we'll just use the 2020 baseline next year ;)
